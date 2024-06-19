@@ -1,106 +1,85 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Menu"
-          @click="toggleLeftDrawer"
+    <div class="row justify-center bg-dark q-py-md" style="border-bottom: 1px solid grey;">
+      <div class="col-12 q-my-sm">
+        <image-view
+          src="https://ryanbalieiro.github.io/vue-resume-template/images/pictures/avatar.png"
+          alt="Rahul Yadav"
+          style="min-height: 12vh"
         />
+      </div>
 
-        <q-toolbar-title>
-          Quasar App
-        </q-toolbar-title>
-
-        <div>Quasar v{{ $q.version }}</div>
-      </q-toolbar>
-    </q-header>
-
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
+      <div class="col-12 q-mt-sm">
+        <div class="text-h6 text-white text-center">Rahul Yadav</div>
+        <div class="text-subtitle2 text-grey-4 text-center">
+          Software Engineer
+        </div>
+      </div>
+    </div>
+    <q-tabs
+      v-if="subMenu && subMenu.length > 0"
+      v-model="baseStore.subTab"
+      align="justify"
+      active-color="white"
+      active-bg-color="grey-10"
+      inline-label
+      switch-indicator
+      no-caps
+      indicator-color="purple-4"
+      class="bg-dark"
     >
-      <q-list>
-        <q-item-label
-          header
+      <q-tab
+        v-for="(menu, index) in subMenu"
+        :key="index"
+        :ripple="false"
+        :name="menu.title"
+        class="q-py-sm text-caption text-grey-4"
+      >
+        <div class="text-caption text-grey-4 text-center">
+          <q-icon class="q-mr-xs q-mb-xs" :name="menu.icon" />
+          {{ menu.title }}
+        </div>
+      </q-tab>
+    </q-tabs>
+    <q-footer>
+      <q-tabs
+        v-model="baseStore.tab"
+        align="justify"
+        indicator-color="transparent"
+        active-color="purple-4"
+        class="bg-dark"
+      >
+        <q-tab
+          v-for="(menu, index) in baseStore.footerMenu"
+          :key="index"
+          :ripple="false"
+          :name="menu.title"
+          class="q-py-sm"
         >
-          Essential Links
-        </q-item-label>
-
-        <EssentialLink
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-        />
-      </q-list>
-    </q-drawer>
-
-    <q-page-container>
+          <q-icon class="q-mb-xs" :name="menu.icon" />
+          <div class="text-caption text-grey-4 text-center">
+            {{ menu.title }}
+          </div>
+        </q-tab>
+      </q-tabs>
+    </q-footer>
+    <q-page-container style="height: fit-content;">
       <router-view />
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import EssentialLink, { EssentialLinkProps } from 'components/EssentialLink.vue';
+import ImageView from 'src/components/ImageView.vue';
+import useBaseStore from 'src/stores/base';
+import { computed } from 'vue';
 
-defineOptions({
-  name: 'MainLayout'
+const baseStore = useBaseStore();
+
+const subMenu = computed(() => {
+  const selectedMenu = baseStore.footerMenu.find(
+    (menu) => menu.title === baseStore.tab,
+  );
+  return selectedMenu?.topMenu || [];
 });
-
-const linksList: EssentialLinkProps[] = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev'
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework'
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev'
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev'
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev'
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev'
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev'
-  }
-];
-
-const leftDrawerOpen = ref(false);
-
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
-}
 </script>
