@@ -1,6 +1,9 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <div class="row justify-center bg-dark q-py-md" style="border-bottom: 1px solid grey;">
+    <div
+      class="row justify-center bg-dark q-py-md"
+      style="border-bottom: 1px solid grey"
+    >
       <div class="col-12 q-my-sm">
         <image-view
           src="https://ryanbalieiro.github.io/vue-resume-template/images/pictures/avatar.png"
@@ -16,61 +19,22 @@
         </div>
       </div>
     </div>
-    <q-tabs
-      v-if="subMenu && subMenu.length > 0"
-      v-model="baseStore.subTab"
-      align="justify"
-      active-color="white"
-      active-bg-color="grey-10"
-      inline-label
-      switch-indicator
-      no-caps
-      indicator-color="purple-4"
-      class="bg-dark"
-    >
-      <q-tab
-        v-for="(menu, index) in subMenu"
-        :key="index"
-        :ripple="false"
-        :name="menu.title"
-        class="q-py-sm text-caption text-grey-4"
-      >
-        <div class="text-caption text-grey-4 text-center">
-          <q-icon class="q-mr-xs q-mb-xs" :name="menu.icon" />
-          {{ menu.title }}
-        </div>
-      </q-tab>
-    </q-tabs>
+    <top-menu :subMenu="subMenu" v-model="baseStore.subTab" />
     <q-footer>
-      <q-tabs
-        v-model="baseStore.tab"
-        align="justify"
-        indicator-color="transparent"
-        active-color="purple-4"
-        class="bg-dark"
-      >
-        <q-tab
-          v-for="(menu, index) in baseStore.footerMenu"
-          :key="index"
-          :ripple="false"
-          :name="menu.title"
-          class="q-py-sm"
-        >
-          <q-icon class="q-mb-xs" :name="menu.icon" />
-          <div class="text-caption text-grey-4 text-center">
-            {{ menu.title }}
-          </div>
-        </q-tab>
-      </q-tabs>
+      <footer-menu :menu="baseStore.footerMenu" v-model="baseStore.tab" />
     </q-footer>
-    <q-page-container style="height: fit-content;">
-      <router-view />
+    <q-page-container style="height: fit-content">
+      <q-page class="q-pa-lg" style="min-height: 10vh !important">
+        <router-view />
+      </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import ImageView from 'src/components/ImageView.vue';
+import ImageView from 'src/components/layout/ImageView.vue';
+import TopMenu from 'src/components/layout/TopMenu.vue';
+import FooterMenu from 'src/components/layout/FooterMenu.vue';
 import useBaseStore from 'src/stores/base';
 import { computed } from 'vue';
 

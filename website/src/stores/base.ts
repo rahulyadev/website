@@ -1,55 +1,61 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import { FooterMenu } from 'src/models/base';
+import {useRouter} from 'vue-router';
 
 export default defineStore('base', () => {
-  const footerMenu = ref([
+  const router = useRouter();
+  const footerMenu = ref<FooterMenu[]>([
     {
       title: 'Home',
       icon: 'fa-solid fa-home',
-      link: '/',
+      pathName: 'Home',
       topMenu: [],
       lastActive: '',
+      lastActivePath: 'Home',
     },
     {
-      title: 'Backgroud',
+      title: 'Background',
       icon: 'fa-solid fa-clock',
-      link: '/background',
+      pathName: 'Background',
       topMenu: [
         {
           title: 'Education',
-          link: '/background/education',
+          pathName: 'Education',
           icon: 'fa-solid fa-graduation-cap',
         },
         {
           title: 'Experience',
-          link: '/background/experience',
+          pathName: 'Experience',
           icon: 'fa-solid fa-briefcase',
         },
       ],
       lastActive: 'Education',
+      lastActivePath: 'Education',
     },
     {
       title: 'Showcase',
       icon: 'fa-solid fa-images',
-      link: '/showcase',
+      pathName: 'Showcase',
       topMenu: [
         {
           title: 'Skills',
-          link: '/showcase/skills',
+          pathName: 'Skills',
           icon: 'fa-solid fa-tools',
         },
         {
           title: 'Projects',
-          link: '/showcase/projects',
+          pathName: 'Projects',
           icon: 'fa-solid fa-project-diagram',
         },
         {
           title: 'Achievements',
-          link: '/showcase/achievements',
+          pathName: 'Achievements',
           icon: 'fa-solid fa-trophy',
         },
       ],
       lastActive: 'Skills',
+      lastActivePath: 'Skills',
     },
   ]);
 
@@ -60,15 +66,19 @@ export default defineStore('base', () => {
     const selectedMenu = footerMenu.value.find((menu) => menu.title === newTab);
     if (selectedMenu && selectedMenu.topMenu.length > 0) {
       subTab.value = selectedMenu.lastActive;
+      router.push({ name: selectedMenu.lastActivePath });
     } else {
       subTab.value = '';
+      router.push({ name: selectedMenu?.pathName || footerMenu.value[0].pathName });
     }
   });
 
   watch(subTab, (newSubTab) => {
     const selectedMenu = footerMenu.value.find((menu) => menu.title === tab.value);
+    const selectedTab = selectedMenu?.topMenu.find((menu) => menu.title === newSubTab);
     if (selectedMenu) {
       selectedMenu.lastActive = newSubTab;
+      router.push({ name: selectedTab?.pathName || footerMenu.value[0].pathName});
     }
   });
 
