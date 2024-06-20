@@ -4,7 +4,62 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: () => import('pages/IndexPage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/background',
+    name: 'Background',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Background',
+        redirect: '/background/education',
+      },
+      {
+        path: 'education',
+        name: 'Education',
+        component: () => import('pages/background/EducationPage.vue'),
+      },
+      {
+        path: 'experience',
+        name: 'Experience',
+        component: () => import('pages/background/ExperiencePage.vue'),
+      },
+    ],
+  },
+  {
+    path: '/showcase',
+    name: 'Showcase',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Showcase',
+        redirect: '/showcase/skills',
+      },
+      {
+        path: 'skills',
+        name: 'Skills',
+        component: () => import('pages/showcase/SkillsPage.vue'),
+      },
+      {
+        path: 'projects',
+        name: 'Projects',
+        component: () => import('pages/showcase/ProjectsPage.vue'),
+      },
+      {
+        path: 'achievements',
+        name: 'Achievements',
+        component: () => import('pages/showcase/AchievementsPage.vue'),
+      },
+    ],
   },
 
   // Always leave this as last one,
