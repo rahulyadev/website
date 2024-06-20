@@ -20,7 +20,7 @@ export default defineStore('common', () => {
       link: 'https://twitter.com/rahulyadevx',
     },
     {
-      title: 'Leet code',
+      title: 'Leetcode',
       icon: 'img:public/icons/leetcode.svg',
       link: 'https://leetcode.com/rahulyadev/',
     },
