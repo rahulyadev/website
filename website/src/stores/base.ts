@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { FooterMenu } from 'src/models/base';
-import {useRouter} from 'vue-router';
+import { useRouter } from 'vue-router';
 
 export default defineStore('base', () => {
   const router = useRouter();
@@ -63,22 +63,23 @@ export default defineStore('base', () => {
   const subTab = ref('');
 
   watch(tab, (newTab) => {
-    const selectedMenu = footerMenu.value.find((menu) => menu.title === newTab);
+    const selectedMenu = footerMenu.value.find(menu => menu.title === newTab);
     if (selectedMenu && selectedMenu.topMenu.length > 0) {
-      subTab.value = selectedMenu.lastActive;
-      router.push({ name: selectedMenu.lastActivePath });
+      subTab.value = selectedMenu.lastActive || selectedMenu.topMenu[0].title;
+      router.push({ name: selectedMenu.lastActivePath || selectedMenu.topMenu[0].pathName });
     } else {
       subTab.value = '';
-      router.push({ name: selectedMenu?.pathName || footerMenu.value[0].pathName });
+      router.push({ name: selectedMenu?.pathName });
     }
   });
 
   watch(subTab, (newSubTab) => {
-    const selectedMenu = footerMenu.value.find((menu) => menu.title === tab.value);
-    const selectedTab = selectedMenu?.topMenu.find((menu) => menu.title === newSubTab);
-    if (selectedMenu) {
+    const selectedMenu = footerMenu.value.find(menu => menu.title === tab.value);
+    const selectedSubTab = selectedMenu?.topMenu.find(menu => menu.title === newSubTab);
+    if (selectedMenu && selectedSubTab) {
       selectedMenu.lastActive = newSubTab;
-      router.push({ name: selectedTab?.pathName || footerMenu.value[0].pathName});
+      selectedMenu.lastActivePath = selectedSubTab.pathName;
+      router.push({ name: selectedSubTab.pathName });
     }
   });
 

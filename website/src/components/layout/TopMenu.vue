@@ -10,6 +10,7 @@
     no-caps
     indicator-color="purple-4"
     class="bg-dark stick-top-menu"
+    :breakpoint="0"
   >
     <q-tab
       v-for="(menu, index) in subMenu"
@@ -17,6 +18,7 @@
       :ripple="false"
       :name="menu.title"
       class="q-py-sm text-caption text-grey-4"
+      :style="{ width: `${100 / props.subMenu.length}%` }"
     >
       <div class="text-caption text-grey-4 text-center">
         <q-icon class="q-mr-xs q-mb-xs" :name="menu.icon" />

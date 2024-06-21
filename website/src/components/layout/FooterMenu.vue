@@ -5,6 +5,7 @@
     indicator-color="transparent"
     active-color="purple-4"
     class="bg-dark"
+    :breakpoint="0"
   >
     <q-tab
       v-for="(menu, index) in props.menu"
@@ -12,6 +13,7 @@
       :ripple="false"
       :name="menu.title"
       class="q-py-sm"
+      :style="{ width: `${100 / props.menu.length}%` }"
     >
       <q-icon class="q-mb-xs" :name="menu.icon" />
       <div class="text-caption text-grey-4 text-center">
