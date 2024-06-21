@@ -11,9 +11,7 @@
           <div class="text-normal text-weight-light text-purple q-pa-none"><q-avatar class="q-mr-xs q-mb-xs" icon="fa-solid fa-envelope" color="transparent" text-color="dark" size="sm" />rahulyadav109708@gmail.com</div>
       </q-item>
       <q-item tag="a" class="q-px-xs q-py-none" style="min-height: 10px;" href='tel:+919619563665'>
-        <q-item-section>
           <div class="text-normal text-weight-light text-purple q-pa-none"><q-avatar class="q-mr-xs q-mb-xs" icon="fa-solid fa-phone" color="transparent" text-color="dark" size="sm" />+91 9619563665</div>
-        </q-item-section>
       </q-item>
     </div>
     <div>
