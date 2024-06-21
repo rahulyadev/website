@@ -21,7 +21,7 @@ export default defineStore('common', () => {
     },
     {
       title: 'Leetcode',
-      icon: 'img:public/icons/leetcode.svg',
+      icon: 'img:icons/leetcode.svg',
       link: 'https://leetcode.com/rahulyadev/',
     },
   ]);
