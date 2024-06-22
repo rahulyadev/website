@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout view="lHh Lpr lFf" class="bg-grey-3">
     <div
       class="row justify-center bg-dark q-py-md"
       style="border-bottom: 1px solid grey"
