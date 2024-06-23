@@ -30,8 +30,11 @@
         </div>
 
         <!-- Item Body -->
-        <div class="item-body q-mt-md">
-          <p>{{ item.description }}</p>
+        <div class="q-mt-md" style="margin-left: -25px;">
+          <p v-if="item.paragraph">{{ item.description }}</p>
+          <ul v-else class="text-grey-8">
+            <li v-for="(bullet, index) in item.description" :key="index" class="q-mb-sm">{{ bullet }}</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -55,6 +58,8 @@ interface TimeLineProps {
 const props = withDefaults(defineProps<TimeLineProps>(), {});
 
 const toReadableDate = (value: string) => {
+  if(!value) return '';
+  if(value === 'Present') return value;
   return date.formatDate(value, 'MMM YYYY');
 };
 </script>

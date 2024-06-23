@@ -13,5 +13,6 @@ export type TimeLineItem = {
     faIcon: string;
   };
   period: string[];
-  description: string;
+  description: string | string[];
+  paragraph: boolean;
 };

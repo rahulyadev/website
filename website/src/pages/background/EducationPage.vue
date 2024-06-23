@@ -26,6 +26,7 @@ const items = ref<TimeLineItem[]>([
     period: ['2016-07-15', '2020-09-15'],
     description:
       'Graduated with a solid foundation in computer science. Acquired expertise in programming, data structures, algorithms, and software development.',
+    paragraph: true,
   },
 ]);
 
