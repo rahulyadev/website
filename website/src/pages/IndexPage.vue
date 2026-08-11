@@ -16,7 +16,7 @@
     </div>
     <div>
       <p class="lead text-normal mb-4 mb-md-5 text-justify">
-        I am a passionate software engineer with a knack for backend
+        I'm a passionate software engineer with a knack for backend
         technologies and a good knowledge of frontend technologies. I thrive on
         solving real-world software problems and exploring the system designs
         used to tackle complex issues. Additionally, I have a strong foundation
