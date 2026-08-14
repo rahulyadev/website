@@ -1,0 +1,7 @@
+node_modules/
+.react-router/
+build/
+coverage/
+playwright-report/
+test-results/
+docs/portfolio-v1-plan.md
