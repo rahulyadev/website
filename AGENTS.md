@@ -6,11 +6,11 @@ Build Rahul Yadav's complete personal portfolio for `rahuly.in` for recruiters, 
 
 Read [docs/portfolio-v1-plan.md](docs/portfolio-v1-plan.md) in full before planning, reviewing, or implementing portfolio work. Treat it as the source of truth for frontend-v1 product scope, architecture, design direction, milestone order, and acceptance criteria. Work only within the current approved milestone and resolve conflicts with the plan before editing.
 
-## Current Transition State
+## Current Application State
 
-Treat the application under `website/` and its Vue, Quasar, Pinia, Yarn, routing, component, styling, and test conventions as temporary legacy state. Do not preserve those conventions as the target architecture. Remove or migrate the legacy application only in an explicitly approved migration milestone.
+The application is a root-level React Router Framework Mode project using Vite, strict TypeScript, Tailwind CSS through its Vite integration, npm, and the root quality commands. Its production build produces static files under `build/client` and does not require a runtime frontend application server.
 
-Until the React migration is merged, run only commands that actually exist in `website/package.json`. Treat `yarn lint`, the current no-op `yarn test`, and `yarn build` as temporary legacy commands. Do not run the repository-wide legacy format command unless the milestone explicitly requires it.
+The removed Vue, Quasar, Pinia, and Yarn application is historical only. Do not restore its code, conventions, presentation, or assets. Use the root `package.json` and `package-lock.json` as the package and command sources of truth.
 
 ## Target Frontend and Architectural Boundaries
 
@@ -45,7 +45,7 @@ Until the React migration is merged, run only commands that actually exist in `w
 
 ## Quality Commands
 
-After the React migration establishes them, use these as the canonical npm commands:
+Use these as the canonical npm commands:
 
 - `npm run dev`
 - `npm run typecheck`
@@ -57,7 +57,7 @@ After the React migration establishes them, use these as the canonical npm comma
 - `npm run build`
 - `npm run verify`
 
-Make `npm run verify` cover required non-browser checks. Also run `npm run test:e2e` for route, navigation, UI, content-rendering, and accessibility changes. Until migration, do not assume these commands exist.
+Make `npm run verify` cover required non-browser checks. Also run `npm run test:e2e` for route, navigation, UI, content-rendering, and accessibility changes.
 
 Do not weaken TypeScript, lint, tests, accessibility checks, or CI to obtain a passing result. Record commands run and any checks not run.
 

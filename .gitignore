@@ -1,0 +1,12 @@
+node_modules/
+.react-router/
+build/
+coverage/
+playwright-report/
+test-results/
+.eslintcache
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
