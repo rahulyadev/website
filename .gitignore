@@ -1,6 +1,7 @@
 node_modules/
 .react-router/
 build/
+/references/private/
 coverage/
 playwright-report/
 test-results/
