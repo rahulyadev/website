@@ -613,6 +613,36 @@ for (const marker of forbiddenLegacyMarkers) {
   }
 }
 
+const forbiddenPreviewMarkers = [
+  "design-system-preview",
+  "design-preview",
+  "preview=design-system",
+  "milestone 4 approval preview",
+  "temporary local preview",
+  "make complex work feel inevitable.",
+];
+
+for (const marker of forbiddenPreviewMarkers) {
+  const normalizedMarker = marker.toLowerCase();
+  const generatedPath = generatedRelativePaths.find((relativePath) =>
+    relativePath.toLowerCase().includes(normalizedMarker),
+  );
+  if (generatedPath !== undefined) {
+    throw new Error(
+      `Found the development-only preview marker ${marker} in generated path ${generatedPath}.`,
+    );
+  }
+
+  const artifact = generatedText.find(({ contents }) =>
+    contents.toLowerCase().includes(normalizedMarker),
+  );
+  if (artifact !== undefined) {
+    throw new Error(
+      `Found the development-only preview marker ${marker} in ${artifact.relativePath}.`,
+    );
+  }
+}
+
 const generatedPdfFile = generatedFiles.find(
   (file) => normalizedExtension(file) === ".pdf",
 );
