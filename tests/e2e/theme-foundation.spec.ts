@@ -65,14 +65,19 @@ function parseRgbColor(color: string): [number, number, number] {
 }
 
 function relativeLuminance(color: string): number {
-  const channels = parseRgbColor(color).map((channel) => {
+  const [red, green, blue] = parseRgbColor(color);
+  const toLinearChannel = (channel: number) => {
     const normalized = channel / 255;
     return normalized <= 0.04045
       ? normalized / 12.92
       : ((normalized + 0.055) / 1.055) ** 2.4;
-  });
+  };
 
-  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return (
+    toLinearChannel(red) * 0.2126 +
+    toLinearChannel(green) * 0.7152 +
+    toLinearChannel(blue) * 0.0722
+  );
 }
 
 function contrastRatio(firstColor: string, secondColor: string): number {
