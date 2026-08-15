@@ -1,6 +1,6 @@
 # rahuly.in
 
-This repository contains the root React foundation for the `rahuly.in` portfolio. The current interface is intentionally minimal while the content and visual system are developed in later approved milestones.
+This repository contains the root React application for the `rahuly.in` portfolio. The current interface remains intentionally minimal while its approved professional content is validated and its visual system is developed in later milestones.
 
 ## Requirements
 
@@ -31,7 +31,7 @@ The `--with-deps` option can request normal host permission to install required 
 npm run dev
 ```
 
-The application uses React Router Framework Mode, Vite, strict TypeScript, and Tailwind CSS through its Vite integration.
+The application uses React Router Framework Mode, Vite, strict TypeScript, and Tailwind CSS through its Vite integration. Public content is validated with Zod at a server/build-only boundary and accessed through an asynchronous `ContentRepository`; presentation code does not import raw local content.
 
 ## Quality commands
 
@@ -49,12 +49,12 @@ The application uses React Router Framework Mode, Vite, strict TypeScript, and T
 
 ## Static output
 
-The production build is written to `build/client`. This foundation pre-renders only:
+The production build is written to `build/client`. Milestone 3 pre-renders only:
 
 - `/`
 - `/projects`
 - `/writings`
 
-Project and writing detail patterns currently resolve to the accessible not-found experience because no public content slugs are part of this milestone. Hosting and deployment configuration are intentionally excluded.
+Projects and writings remain valid empty collections until their later content milestones. Their detail patterns resolve to the accessible not-found experience because no public slugs are emitted yet. Private résumé sources and their comparison report are excluded from Git and static output; only approved, validated public projections may enter route data. Hosting and deployment configuration are intentionally excluded.
 
 See [the portfolio v1 plan](docs/portfolio-v1-plan.md) for the approved architecture, milestone boundaries, and acceptance criteria.

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const knownRoutes = [
-  { path: "/", heading: "Portfolio foundation" },
+  { path: "/", heading: "Rahul Yadav" },
   { path: "/projects", heading: "Projects" },
   { path: "/writings", heading: "Writings" },
 ] as const;
@@ -85,7 +85,7 @@ for (const route of missingRoutes) {
     await returnHomeLink.click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
-      page.getByRole("heading", { level: 1, name: "Portfolio foundation" }),
+      page.getByRole("heading", { level: 1, name: "Rahul Yadav" }),
     ).toBeVisible();
 
     await page.goto(route.path);
@@ -110,7 +110,7 @@ test("representative states have no automated accessibility violations", async (
   }
 });
 
-test("the foundation does not overflow horizontally", async ({ page }) => {
+test("the content routes do not overflow horizontally", async ({ page }) => {
   await page.goto("/");
 
   const hasOverflow = await page.evaluate(
