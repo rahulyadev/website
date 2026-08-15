@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import {
   Links,
   Meta,
@@ -10,7 +10,18 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import { SkipLink } from "./components/ui";
+import { THEME_BOOTSTRAP_SCRIPT, ThemeProvider } from "./theme";
 import "./app.css";
+
+const DevelopmentDesignSystemPreviewGate = import.meta.env.DEV
+  ? lazy(async () => {
+      const { DesignSystemPreviewGate } =
+        await import("./design-system-preview/preview-gate");
+
+      return { default: DesignSystemPreviewGate };
+    })
+  : undefined;
 
 export const meta: Route.MetaFunction = () => [
   { title: "Portfolio foundation" },
@@ -19,10 +30,14 @@ export const meta: Route.MetaFunction = () => [
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
+          suppressHydrationWarning
+        />
         <Meta />
         <Links />
       </head>
@@ -43,21 +58,10 @@ export function HydrateFallback() {
   );
 }
 
-function focusMainContent(event: MouseEvent<HTMLAnchorElement>) {
-  const mainContent = document.getElementById("main-content");
-
-  if (mainContent) {
-    event.preventDefault();
-    mainContent.focus();
-  }
-}
-
-export default function App() {
+function FoundationShell() {
   return (
     <>
-      <a className="skip-link" href="#main-content" onClick={focusMainContent}>
-        Skip to content
-      </a>
+      <SkipLink />
       <header className="site-header">
         <nav aria-label="Primary">
           <ul>
@@ -75,10 +79,34 @@ export default function App() {
           </ul>
         </nav>
       </header>
-      <main id="main-content" tabIndex={-1}>
+      <main className="foundation-main" id="main-content" tabIndex={-1}>
         <Outlet />
       </main>
     </>
+  );
+}
+
+function DevelopmentPreviewBoundary({ children }: { children: ReactNode }) {
+  if (!DevelopmentDesignSystemPreviewGate) {
+    return children;
+  }
+
+  return (
+    <Suspense fallback={children}>
+      <DevelopmentDesignSystemPreviewGate>
+        {children}
+      </DevelopmentDesignSystemPreviewGate>
+    </Suspense>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <DevelopmentPreviewBoundary>
+        <FoundationShell />
+      </DevelopmentPreviewBoundary>
+    </ThemeProvider>
   );
 }
 

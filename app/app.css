@@ -1,87 +1,23 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/primitives.css";
 
-:root {
-  color-scheme: light dark;
-  --foundation-background: Canvas;
-  --foundation-text: CanvasText;
-  --foundation-link: LinkText;
-  --foundation-focus: Highlight;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  min-width: 20rem;
-}
-
-body {
-  min-height: 100vh;
-  margin: 0;
-  background: var(--foundation-background);
-  color: var(--foundation-text);
-}
-
-a {
-  color: var(--foundation-link);
-  text-underline-offset: 0.2em;
-}
-
-a:focus-visible,
-[tabindex="-1"]:focus-visible {
-  outline: 0.2rem solid var(--foundation-focus);
-  outline-offset: 0.2rem;
-}
-
-.skip-link {
-  position: absolute;
-  z-index: 1;
-  top: 0.5rem;
-  left: 0.5rem;
-  padding: 0.5rem;
-  transform: translateY(-200%);
-  background: var(--foundation-background);
-  color: var(--foundation-text);
-}
-
-.skip-link:focus {
-  transform: translateY(0);
-}
-
+/* Transitional shell rules remain intentionally minimal until Milestone 5. */
 .site-header,
-main {
-  padding: 1rem;
+.foundation-main {
+  padding: var(--page-gutter);
 }
 
 .site-header ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-5);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-main {
-  max-width: 48rem;
-}
-
-h1 {
-  font-size: 2rem;
-  line-height: 1.2;
-}
-
-p {
-  max-width: 65ch;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-  }
+.foundation-main {
+  max-width: var(--width-content);
 }

@@ -1,6 +1,6 @@
 # rahuly.in
 
-This repository contains the root React application for the `rahuly.in` portfolio. The current interface remains intentionally minimal while its approved professional content is validated and its visual system is developed in later milestones.
+This repository contains the root React application for the `rahuly.in` portfolio. The current public routes remain intentionally minimal while approved professional content and the approved visual foundation are integrated in their planned milestones.
 
 ## Requirements
 
@@ -57,4 +57,4 @@ The production build is written to `build/client`. Milestone 3 pre-renders only:
 
 Projects and writings remain valid empty collections until their later content milestones. Their detail patterns resolve to the accessible not-found experience because no public slugs are emitted yet. Private résumé sources and their comparison report are excluded from Git and static output; only approved, validated public projections may enter route data. Hosting and deployment configuration are intentionally excluded.
 
-See [the portfolio v1 plan](docs/portfolio-v1-plan.md) for the approved architecture, milestone boundaries, and acceptance criteria.
+See [the design-system guide](docs/design-system.md) for the approved visual foundation and local component API. See [the portfolio v1 plan](docs/portfolio-v1-plan.md) for the approved architecture, milestone boundaries, and acceptance criteria.

@@ -1,0 +1,191 @@
+:root {
+  color-scheme: light;
+
+  /* Color primitives: warm neutral paper, charcoal ink, restrained blue. */
+  --palette-canvas: #f6f3ee;
+  --palette-surface: #fcfaf6;
+  --palette-surface-raised: #ffffff;
+  --palette-surface-subtle: #ece8e1;
+  --palette-ink-strong: #20252b;
+  --palette-ink: #343a40;
+  --palette-ink-muted: #62676d;
+  --palette-accent: #1f5f99;
+  --palette-accent-strong: #174a77;
+  --palette-accent-soft: #dbe8f4;
+  --palette-on-accent: #ffffff;
+  --palette-border: #d8d3ca;
+  --palette-border-strong: #aaa49a;
+  --palette-positive: #2d6a4f;
+  --palette-positive-soft: #dfede6;
+  --palette-focus: #1768ad;
+  --palette-selection: rgb(31 95 153 / 22%);
+
+  /* Semantic color roles. */
+  --color-canvas: var(--palette-canvas);
+  --color-surface: var(--palette-surface);
+  --color-surface-raised: var(--palette-surface-raised);
+  --color-surface-subtle: var(--palette-surface-subtle);
+  --color-text-strong: var(--palette-ink-strong);
+  --color-text: var(--palette-ink);
+  --color-text-muted: var(--palette-ink-muted);
+  --color-link: var(--palette-accent);
+  --color-link-hover: var(--palette-accent-strong);
+  --color-accent: var(--palette-accent);
+  --color-accent-strong: var(--palette-accent-strong);
+  --color-accent-soft: var(--palette-accent-soft);
+  --color-on-accent: var(--palette-on-accent);
+  --color-border: var(--palette-border);
+  --color-border-strong: var(--palette-border-strong);
+  --color-positive: var(--palette-positive);
+  --color-positive-soft: var(--palette-positive-soft);
+  --color-focus-ring: var(--palette-focus);
+  --color-selection: var(--palette-selection);
+
+  /* System-first typography. */
+  --font-family-display:
+    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+    serif;
+  --font-family-body:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-family-mono:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-weight-regular: 400;
+  --font-weight-medium: 550;
+  --font-weight-semibold: 650;
+  --font-size-caption: 0.75rem;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-body-large: clamp(1.0625rem, 1rem + 0.3vw, 1.25rem);
+  --font-size-heading-3: clamp(1.35rem, 1.18rem + 0.7vw, 1.75rem);
+  --font-size-heading-2: clamp(1.8rem, 1.45rem + 1.4vw, 2.75rem);
+  --font-size-heading-1: clamp(2.4rem, 1.75rem + 3vw, 4.75rem);
+  --font-size-display: clamp(3.15rem, 1.8rem + 6.25vw, 7.5rem);
+  --line-height-solid: 0.96;
+  --line-height-heading: 1.08;
+  --line-height-body: 1.68;
+  --line-height-compact: 1.35;
+  --letter-spacing-tight: -0.035em;
+  --letter-spacing-label: 0.075em;
+
+  /* Spacing follows a 4px base with fluid section rhythm. */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-section: clamp(4.5rem, 9vw, 8rem);
+
+  --radius-none: 0;
+  --radius-small: 0.25rem;
+  --radius-medium: 0.5rem;
+  --radius-large: 0.875rem;
+  --radius-pill: 999rem;
+
+  --border-width-hairline: 1px;
+  --border-width-strong: 2px;
+  --border-default: var(--border-width-hairline) solid var(--color-border);
+  --border-strong: var(--border-width-hairline) solid var(--color-border-strong);
+
+  --shadow-small: 0 1px 2px rgb(32 37 43 / 8%);
+  --shadow-medium: 0 12px 32px rgb(32 37 43 / 9%), 0 2px 8px rgb(32 37 43 / 5%);
+  --shadow-focus:
+    0 0 0 var(--focus-ring-offset) var(--color-canvas),
+    0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width))
+      var(--color-focus-ring);
+
+  --motion-duration-instant: 80ms;
+  --motion-duration-fast: 140ms;
+  --motion-duration-standard: 220ms;
+  --motion-duration-slow: 360ms;
+  --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --width-reading: 68ch;
+  --width-content: 48rem;
+  --width-wide: 80rem;
+  --page-gutter: clamp(1rem, 4vw, 3rem);
+  --grid-columns: 12;
+  --grid-gap: clamp(1rem, 2vw, 1.75rem);
+
+  /* Documented breakpoints; media queries repeat literals for CSS portability. */
+  --breakpoint-small: 30rem;
+  --breakpoint-medium: 48rem;
+  --breakpoint-large: 64rem;
+  --breakpoint-wide: 80rem;
+
+  --focus-ring-width: 0.1875rem;
+  --focus-ring-offset: 0.1875rem;
+  --control-min-size: 2.75rem;
+
+  --layer-base: 0;
+  --layer-raised: 10;
+  --layer-sticky: 100;
+  --layer-overlay: 1000;
+  --layer-skip-link: 1100;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --palette-canvas: #141719;
+  --palette-surface: #1b1f22;
+  --palette-surface-raised: #22272b;
+  --palette-surface-subtle: #292e32;
+  --palette-ink-strong: #f3efe8;
+  --palette-ink: #dedbd4;
+  --palette-ink-muted: #aaa9a4;
+  --palette-accent: #7eb2e2;
+  --palette-accent-strong: #a5cdf0;
+  --palette-accent-soft: #20394e;
+  --palette-on-accent: #102333;
+  --palette-border: #393f44;
+  --palette-border-strong: #626a70;
+  --palette-positive: #78c69e;
+  --palette-positive-soft: #213c31;
+  --palette-focus: #8bc5f6;
+  --palette-selection: rgb(126 178 226 / 28%);
+  --shadow-small: 0 1px 2px rgb(0 0 0 / 24%);
+  --shadow-medium: 0 14px 36px rgb(0 0 0 / 28%), 0 2px 8px rgb(0 0 0 / 18%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --palette-canvas: #141719;
+    --palette-surface: #1b1f22;
+    --palette-surface-raised: #22272b;
+    --palette-surface-subtle: #292e32;
+    --palette-ink-strong: #f3efe8;
+    --palette-ink: #dedbd4;
+    --palette-ink-muted: #aaa9a4;
+    --palette-accent: #7eb2e2;
+    --palette-accent-strong: #a5cdf0;
+    --palette-accent-soft: #20394e;
+    --palette-on-accent: #102333;
+    --palette-border: #393f44;
+    --palette-border-strong: #626a70;
+    --palette-positive: #78c69e;
+    --palette-positive-soft: #213c31;
+    --palette-focus: #8bc5f6;
+    --palette-selection: rgb(126 178 226 / 28%);
+    --shadow-small: 0 1px 2px rgb(0 0 0 / 24%);
+    --shadow-medium: 0 14px 36px rgb(0 0 0 / 28%), 0 2px 8px rgb(0 0 0 / 18%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-instant: 0.01ms;
+    --motion-duration-fast: 0.01ms;
+    --motion-duration-standard: 0.01ms;
+    --motion-duration-slow: 0.01ms;
+  }
+}
