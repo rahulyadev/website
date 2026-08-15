@@ -3,13 +3,14 @@ import { createRoutesStub, MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 
 import { NotFoundPage } from "../../app/components/not-found-page";
-import App from "../../app/root";
+import App, { loader as rootLoader } from "../../app/root";
 import NotFound from "../../app/routes/not-found";
 
 const NotFoundRoutes = createRoutesStub([
   {
     path: "/",
     Component: App,
+    loader: rootLoader,
     children: [{ path: "*", Component: NotFound }],
   },
 ]);
@@ -34,11 +35,14 @@ describe("not-found experience", () => {
     );
   });
 
-  it("renders through the catch-all route", () => {
+  it("renders through the catch-all route", async () => {
     render(<NotFoundRoutes initialEntries={["/missing-page"]} />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Page not found" }),
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Page not found",
+      }),
     ).toBeInTheDocument();
     expect(screen.getByRole("main")).toBeVisible();
   });

@@ -7,8 +7,11 @@ export function createValidContentFixture() {
       identity: {
         id: "site-example",
         displayName: "Example Engineer",
+        roleLabel: "Software Engineer",
+        location: "London, United Kingdom",
         professionalPositioning: "Backend engineer",
         introduction: "Builds maintainable services and web applications.",
+        opportunityStatement: "Open to suitable engineering opportunities.",
         careerStart: "2020-02",
         locale: "en-GB",
       },
@@ -119,7 +122,8 @@ export function createValidContentFixture() {
       credibilityHighlights: [
         {
           id: "highlight-example",
-          statement: "Delivered a tested example service.",
+          lead: "Delivered a tested example service.",
+          detail: "Built and released it with the example engineering team.",
           supportingClaimIds: ["claim-example-delivery"],
           order: 10,
         },
@@ -276,6 +280,9 @@ export function createValidAssetManifestFixture() {
       sha256: "a".repeat(64),
       byteSize: 1024,
       metadataRemovalVerified: true,
+      pageCount: 1,
+      linkCount: 2,
+      linkValidationVerified: true,
       approvedOn: "2026-01-15",
     },
     {

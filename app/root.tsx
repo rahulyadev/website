@@ -2,15 +2,14 @@ import { lazy, Suspense, type ReactNode } from "react";
 import {
   Links,
   Meta,
-  NavLink,
-  Outlet,
   Scripts,
   ScrollRestoration,
   isRouteErrorResponse,
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import { SkipLink } from "./components/ui";
+import { SiteShell } from "./components/site-shell/site-shell";
+import { loadSiteShellData } from "./content/portfolio-route-data.server";
 import { THEME_BOOTSTRAP_SCRIPT, ThemeProvider } from "./theme";
 import "./app.css";
 
@@ -24,9 +23,13 @@ const DevelopmentDesignSystemPreviewGate = import.meta.env.DEV
   : undefined;
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Portfolio foundation" },
+  { title: "Rahul Yadav | Senior Software Engineer" },
   { name: "robots", content: "noindex" },
 ];
+
+export async function loader() {
+  return loadSiteShellData();
+}
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
@@ -58,34 +61,6 @@ export function HydrateFallback() {
   );
 }
 
-function FoundationShell() {
-  return (
-    <>
-      <SkipLink />
-      <header className="site-header">
-        <nav aria-label="Primary">
-          <ul>
-            <li>
-              <NavLink to="/" end>
-                Home
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/projects">Projects</NavLink>
-            </li>
-            <li>
-              <NavLink to="/writings">Writings</NavLink>
-            </li>
-          </ul>
-        </nav>
-      </header>
-      <main className="foundation-main" id="main-content" tabIndex={-1}>
-        <Outlet />
-      </main>
-    </>
-  );
-}
-
 function DevelopmentPreviewBoundary({ children }: { children: ReactNode }) {
   if (!DevelopmentDesignSystemPreviewGate) {
     return children;
@@ -100,11 +75,11 @@ function DevelopmentPreviewBoundary({ children }: { children: ReactNode }) {
   );
 }
 
-export default function App() {
+export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <ThemeProvider>
       <DevelopmentPreviewBoundary>
-        <FoundationShell />
+        <SiteShell data={loaderData} />
       </DevelopmentPreviewBoundary>
     </ThemeProvider>
   );

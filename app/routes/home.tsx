@@ -1,14 +1,9 @@
-import { getContentRepository } from "../content/content.server";
+import { HomePage } from "../components/home/home-page";
+import { loadHomePageData } from "../content/portfolio-route-data.server";
 import type { Route } from "./+types/home";
 
 export async function loader() {
-  const overview = await getContentRepository().getPortfolioOverview();
-
-  return {
-    identity: overview.identity,
-    seo: overview.seo,
-    canonicalOrigin: overview.canonicalOrigin,
-  };
+  return loadHomePageData();
 }
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
@@ -25,11 +20,5 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 };
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  return (
-    <section aria-labelledby="home-heading">
-      <h1 id="home-heading">{loaderData.identity.displayName}</h1>
-      <p>{loaderData.identity.professionalPositioning}</p>
-      <p>{loaderData.identity.introduction}</p>
-    </section>
-  );
+  return <HomePage data={loaderData} />;
 }

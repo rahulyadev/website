@@ -11,6 +11,7 @@ import type {
   LocalContentSource,
   OrderedSkillReference,
   OrderedStatement,
+  ProfileImageSource,
   ProfessionalContentSource,
   ProjectRecord,
   ProvisionalArticleContent,
@@ -250,8 +251,11 @@ const seoMetadataSchema = z.object({
 const siteIdentitySchema = z.object({
   id: stableIdSchema,
   displayName: nonemptyTextSchema,
+  roleLabel: nonemptyTextSchema,
+  location: nonemptyTextSchema,
   professionalPositioning: nonemptyTextSchema,
   introduction: nonemptyTextSchema,
+  opportunityStatement: nonemptyTextSchema,
   careerStart: partialDateSchema,
   locale: nonemptyTextSchema,
 }) satisfies z.ZodType<SiteIdentitySource>;
@@ -326,7 +330,8 @@ const experienceSchema = z.object({
 
 const credibilityHighlightSchema = z.object({
   id: stableIdSchema,
-  statement: nonemptyTextSchema,
+  lead: nonemptyTextSchema,
+  detail: nonemptyTextSchema,
   supportingClaimIds: z.array(stableIdSchema).min(1).readonly(),
   order: positiveOrderSchema,
 }) satisfies z.ZodType<CredibilityHighlight>;
@@ -496,6 +501,12 @@ const publicImageAssetSchema = z
     }
   }) satisfies z.ZodType<PublicImageAsset>;
 
+const profileImageSourceSchema = z.object({
+  id: stableIdSchema,
+  mainAssetIds: z.array(stableIdSchema).min(1).readonly(),
+  compactAssetIds: z.array(stableIdSchema).min(1).readonly(),
+}) satisfies z.ZodType<ProfileImageSource>;
+
 const siteContentSourceSchema = z.object({
   identity: siteIdentitySchema,
   seo: seoDefaultsSchema,
@@ -503,6 +514,7 @@ const siteContentSourceSchema = z.object({
   socialLinks: z.array(socialLinkSchema).readonly(),
   resumeAssets: z.array(publicResumeAssetSchema).readonly(),
   images: z.array(publicImageAssetSchema).readonly(),
+  profileImage: profileImageSourceSchema.optional(),
 }) satisfies z.ZodType<SiteContentSource>;
 
 const professionalContentSourceSchema = z.object({
@@ -526,6 +538,9 @@ export const buildAssetManifestEntrySchema = z.object({
   sha256: assetHashSchema,
   byteSize: z.number().int().positive(),
   metadataRemovalVerified: z.boolean(),
+  pageCount: z.number().int().positive().optional(),
+  linkCount: z.number().int().nonnegative().optional(),
+  linkValidationVerified: z.boolean().optional(),
   approvedOn: fullDateSchema,
 });
 

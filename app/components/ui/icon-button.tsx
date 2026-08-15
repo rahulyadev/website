@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 export interface IconButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -8,18 +8,19 @@ export interface IconButtonProps extends Omit<
   variant?: "secondary" | "ghost";
 }
 
-export function IconButton({
-  className,
-  type = "button",
-  variant = "secondary",
-  ...props
-}: IconButtonProps) {
-  return (
-    <button
-      className={["ui-icon-button", className].filter(Boolean).join(" ")}
-      data-variant={variant}
-      type={type}
-      {...props}
-    />
-  );
-}
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
+  function IconButton(
+    { className, type = "button", variant = "secondary", ...props },
+    ref,
+  ) {
+    return (
+      <button
+        className={["ui-icon-button", className].filter(Boolean).join(" ")}
+        data-variant={variant}
+        ref={ref}
+        type={type}
+        {...props}
+      />
+    );
+  },
+);

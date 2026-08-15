@@ -2,22 +2,5 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/primitives.css";
-
-/* Transitional shell rules remain intentionally minimal until Milestone 5. */
-.site-header,
-.foundation-main {
-  padding: var(--page-gutter);
-}
-
-.site-header ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.foundation-main {
-  max-width: var(--width-content);
-}
+@import "./styles/site-shell.css";
+@import "./styles/home.css";

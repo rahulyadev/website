@@ -4,6 +4,7 @@
  */
 export function initializeThemeBeforePaint() {
   const root = document.documentElement;
+  root.dataset["javascript"] = "enabled";
   let preference: "light" | "dark" | "system" = "system";
 
   try {

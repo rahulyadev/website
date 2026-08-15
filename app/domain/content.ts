@@ -27,8 +27,11 @@ export interface SeoMetadata {
 export interface SiteIdentitySource {
   readonly id: StableId;
   readonly displayName: string;
+  readonly roleLabel: string;
+  readonly location: string;
   readonly professionalPositioning: string;
   readonly introduction: string;
+  readonly opportunityStatement: string;
   readonly careerStart: PartialDate;
   readonly locale: string;
 }
@@ -83,7 +86,8 @@ export interface Experience {
 
 export interface CredibilityHighlight {
   readonly id: StableId;
-  readonly statement: string;
+  readonly lead: string;
+  readonly detail: string;
   readonly supportingClaimIds: readonly StableId[];
   readonly order: number;
 }
@@ -231,6 +235,17 @@ export interface PublicImageAsset {
   readonly altText: string;
 }
 
+export interface ProfileImageSource {
+  readonly id: StableId;
+  readonly mainAssetIds: readonly StableId[];
+  readonly compactAssetIds: readonly StableId[];
+}
+
+export interface ResolvedProfileImage {
+  readonly main: readonly PublicImageAsset[];
+  readonly compact: readonly PublicImageAsset[];
+}
+
 export interface SiteContentSource {
   readonly identity: SiteIdentitySource;
   readonly seo: SeoDefaults;
@@ -238,6 +253,7 @@ export interface SiteContentSource {
   readonly socialLinks: readonly SocialLink[];
   readonly resumeAssets: readonly PublicResumeAsset[];
   readonly images: readonly PublicImageAsset[];
+  readonly profileImage?: ProfileImageSource | undefined;
 }
 
 export interface ProfessionalContentSource {
@@ -275,6 +291,7 @@ export interface PortfolioOverview {
   readonly featuredProjects: readonly PublishedProject[];
   readonly recentWritings: readonly PublishedWriting[];
   readonly resumeAsset?: PublicResumeAsset | undefined;
+  readonly profileImage?: ResolvedProfileImage | undefined;
 }
 
 export interface PublishedProjectCollection {
