@@ -148,6 +148,31 @@ describe("ThemeToggle", () => {
     expect(dark).toHaveFocus();
   });
 
+  it("offers an icon-only presentation with accessible names and tooltips", async () => {
+    installMatchMedia(false);
+
+    render(
+      <ThemeProvider>
+        <ThemeToggle aria-label="Compact theme" presentation="compact" />
+      </ThemeProvider>,
+    );
+
+    const group = screen.getByRole("radiogroup", { name: "Compact theme" });
+    expect(group).toHaveAttribute("data-presentation", "compact");
+
+    for (const name of ["Light", "Dark", "System"]) {
+      const radio = await screen.findByRole("radio", { name });
+      const tooltipId = radio.getAttribute("aria-describedby");
+      expect(tooltipId).toBeTruthy();
+      expect(radio).not.toHaveAttribute("title");
+      expect(document.getElementById(tooltipId ?? "")).toHaveAttribute(
+        "role",
+        "tooltip",
+      );
+      expect(document.getElementById(tooltipId ?? "")).toHaveTextContent(name);
+    }
+  });
+
   it("tracks operating-system theme changes while system mode is selected", async () => {
     const matchMedia = installMatchMedia(false);
 

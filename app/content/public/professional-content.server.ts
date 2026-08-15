@@ -174,35 +174,43 @@ export const professionalContent = {
   ],
   credibilityHighlights: [
     {
-      id: "highlight-delivery-leadership",
-      statement: "Led delivery for 3 engineers.",
-      supportingClaimIds: ["claim-sopra-leadership"],
+      id: "highlight-modernization-architecture",
+      lead: "Co-designed a phased PHP-to-FastAPI/React modernization architecture.",
+      detail:
+        "As a Senior Software Engineer at Sopra Steria on the Airbus engagement, implemented Strangler Fig routing with AWS ALB URL rewrites to avoid a big-bang cutover.",
+      supportingClaimIds: ["claim-sopra-modernization"],
       order: 10,
     },
     {
-      id: "highlight-api-payload",
-      statement:
-        "Reduced primary data-grid API payloads from ~1.5-2 MB to <1 MB.",
-      supportingClaimIds: ["claim-sopra-payload-reduction"],
+      id: "highlight-full-stack-delivery",
+      lead: "Designed and delivered 4 greenfield modules from requirements through release.",
+      detail:
+        "As a Software Developer at Gainfront, built DRF services and Vue/Quasar interfaces for Request for Price, Target Report, Spend Analytics, and Itemized Quote.",
+      supportingClaimIds: ["claim-gainfront-greenfield"],
       order: 20,
     },
     {
-      id: "highlight-test-coverage",
-      statement:
-        "Helped raise backend test coverage by ~45 percentage points (~40% to ~85%).",
-      supportingClaimIds: ["claim-gainfront-testing"],
+      id: "highlight-delivery-leadership",
+      lead: "Led delivery for 3 engineers and reviewed PRs across Sopra, Airbus, and partner teams.",
+      detail:
+        "As a Senior Software Engineer at Sopra Steria, guided delivery while strengthening persistence and authorization testing with database-backed pytest fixtures.",
+      supportingClaimIds: ["claim-sopra-leadership"],
       order: 30,
     },
     {
-      id: "highlight-video-performance",
-      statement: "Reduced video-generation time by 60%.",
-      supportingClaimIds: ["claim-marsdevs-castapp"],
+      id: "highlight-api-payload",
+      lead: "Reduced primary data-grid API payloads from ~1.5-2 MB to <1 MB.",
+      detail:
+        "As a Senior Software Engineer at Sopra Steria, used response shaping and Gzip compression to meet the ALB-to-Lambda 1 MB response limit.",
+      supportingClaimIds: ["claim-sopra-payload-reduction"],
       order: 40,
     },
     {
-      id: "highlight-backend-coverage",
-      statement: "Increased backend test coverage by 35%.",
-      supportingClaimIds: ["claim-marsdevs-document-ai"],
+      id: "highlight-test-coverage",
+      lead: "Helped raise backend test coverage by ~45 percentage points (~40% to ~85%).",
+      detail:
+        "As a Software Developer at Gainfront, added pytest coverage for new and migrated flows and strengthened CI and linting checks.",
+      supportingClaimIds: ["claim-gainfront-testing"],
       order: 50,
     },
   ],

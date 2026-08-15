@@ -98,8 +98,16 @@ describe("content validation", () => {
     expect(snapshot.writings).toHaveLength(3);
     expect(productionSnapshot.projects).toEqual([]);
     expect(productionSnapshot.writings).toEqual([]);
-    expect(productionSnapshot.site.resumeAssets).toEqual([]);
-    expect(productionSnapshot.site.images).toEqual([]);
+    expect(productionSnapshot.site.resumeAssets).toHaveLength(1);
+    expect(productionSnapshot.site.resumeAssets[0]).toMatchObject({
+      publicationStatus: "published",
+      path: "/assets/resume/rahul-yadav-resume.pdf",
+    });
+    expect(productionSnapshot.site.images).toHaveLength(15);
+    expect(productionSnapshot.site.profileImage?.mainAssetIds).toHaveLength(9);
+    expect(productionSnapshot.site.profileImage?.compactAssetIds).toHaveLength(
+      6,
+    );
   });
 
   it("keeps production role technologies and payload wording source-specific", async () => {
@@ -131,9 +139,12 @@ describe("content validation", () => {
         "skill-ci-cd",
       ]),
     );
-    expect(payloadHighlight?.statement).toBe(
+    expect(payloadHighlight?.lead).toBe(
       "Reduced primary data-grid API payloads from ~1.5-2 MB to <1 MB.",
     );
+    expect(payloadHighlight?.supportingClaimIds).toEqual([
+      "claim-sopra-payload-reduction",
+    ]);
   });
 
   it("reports missing and empty required fields without echoing their values", () => {
@@ -489,6 +500,20 @@ describe("content validation", () => {
     expect(
       expectInvalid(createValidContentFixture(), metadataNotRemoved).message,
     ).toContain("verify metadata removal");
+
+    const linksNotValidated = structuredClone(
+      createValidAssetManifestFixture(),
+    );
+    setAtPath(linksNotValidated, [0, "linkValidationVerified"], false);
+    const publishedResume = createValidContentFixture();
+    setAtPath(
+      publishedResume,
+      ["site", "resumeAssets", 0, "publicationStatus"],
+      "published",
+    );
+    expect(expectInvalid(publishedResume, linksNotValidated).message).toContain(
+      "verify PDF links",
+    );
 
     const badExtension = createValidContentFixture();
     setAtPath(badExtension, ["site", "images", 0, "path"], "/assets/image.png");

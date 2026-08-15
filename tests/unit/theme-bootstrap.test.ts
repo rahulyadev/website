@@ -14,6 +14,7 @@ afterEach(() => {
   window.localStorage.clear();
   delete document.documentElement.dataset["theme"];
   delete document.documentElement.dataset["themePreference"];
+  delete document.documentElement.dataset["javascript"];
   document.documentElement.style.colorScheme = "";
   vi.unstubAllGlobals();
 });
@@ -31,6 +32,10 @@ describe("pre-paint theme initialization", () => {
       "dark",
     );
     expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(document.documentElement).toHaveAttribute(
+      "data-javascript",
+      "enabled",
+    );
   });
 
   it("resolves system mode from the media preference", () => {

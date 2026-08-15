@@ -2,6 +2,7 @@ import type {
   PortfolioOverview,
   PublishedProject,
   PublishedWriting,
+  ResolvedProfileImage,
   ResolvedSkillGroup,
   SiteIdentity,
   Skill,
@@ -74,6 +75,32 @@ function resolveSkillGroups(snapshot: ValidatedContentSnapshot) {
       }),
     }),
   );
+}
+
+function resolveProfileImage(
+  snapshot: ValidatedContentSnapshot,
+): ResolvedProfileImage | undefined {
+  const source = snapshot.site.profileImage;
+  if (source === undefined) return undefined;
+
+  const images = new Map(
+    snapshot.site.images.map((image) => [image.id, image]),
+  );
+  const resolve = (assetIds: readonly string[]) =>
+    assetIds.map((assetId) => {
+      const image = images.get(assetId);
+      if (image?.publicationStatus !== "published") {
+        throw new Error(
+          `Validated profile image lost published asset ${assetId}.`,
+        );
+      }
+      return image;
+    });
+
+  return {
+    main: resolve(source.mainAssetIds),
+    compact: resolve(source.compactAssetIds),
+  };
 }
 
 function publicationDateDescending(
@@ -152,6 +179,7 @@ export class StaticContentRepository implements ContentRepository {
       resumeAsset: snapshot.site.resumeAssets.find(
         (asset) => asset.publicationStatus === "published",
       ),
+      profileImage: resolveProfileImage(snapshot),
     });
   }
 

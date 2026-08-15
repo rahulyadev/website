@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from "react";
+import { useId, useRef, type KeyboardEvent } from "react";
 
 import { THEME_PREFERENCES, useTheme, type ThemePreference } from "../../theme";
 
@@ -37,14 +37,17 @@ function ThemeIcon({ preference }: { preference: ThemePreference }) {
 export interface ThemeToggleProps {
   "aria-label"?: string;
   className?: string;
+  presentation?: "compact" | "full";
 }
 
 export function ThemeToggle({
   "aria-label": ariaLabel = "Theme preference",
   className,
+  presentation = "full",
 }: ThemeToggleProps) {
   const { preference, setPreference } = useTheme();
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tooltipIdPrefix = useId();
 
   const selectAndFocus = (nextPreference: ThemePreference) => {
     setPreference(nextPreference);
@@ -84,14 +87,20 @@ export function ThemeToggle({
     <div
       aria-label={ariaLabel}
       className={["ui-theme-toggle", className].filter(Boolean).join(" ")}
+      data-presentation={presentation}
       role="radiogroup"
     >
       {THEME_PREFERENCES.map((option, index) => {
         const selected = preference === option;
+        const tooltipId = `${tooltipIdPrefix}-${option}-theme-tooltip`;
 
         return (
           <button
             aria-checked={selected}
+            aria-describedby={
+              presentation === "compact" ? tooltipId : undefined
+            }
+            aria-label={labels[option]}
             className="ui-theme-toggle__option"
             key={option}
             onClick={() => {
@@ -108,7 +117,16 @@ export function ThemeToggle({
             type="button"
           >
             <ThemeIcon preference={option} />
-            <span>{labels[option]}</span>
+            <span className="ui-theme-toggle__label">{labels[option]}</span>
+            {presentation === "compact" ? (
+              <span
+                className="ui-theme-toggle__tooltip"
+                id={tooltipId}
+                role="tooltip"
+              >
+                {labels[option]}
+              </span>
+            ) : null}
           </button>
         );
       })}

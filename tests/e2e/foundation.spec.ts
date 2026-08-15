@@ -38,6 +38,16 @@ async function expectNotFoundState(page: Page) {
   return returnHomeLink;
 }
 
+async function openPrimaryNavigationIfCollapsed(page: Page) {
+  const openNavigation = page.getByRole("button", {
+    name: "Open navigation",
+  });
+
+  if (await openNavigation.isVisible()) {
+    await openNavigation.click();
+  }
+}
+
 for (const route of knownRoutes) {
   test(`${route.path} supports direct navigation`, async ({ page }) => {
     await page.goto(route.path);
@@ -51,14 +61,17 @@ for (const route of knownRoutes) {
 
 test("primary navigation changes routes", async ({ page }) => {
   await page.goto("/");
+  const primaryNavigation = page.getByRole("navigation", { name: "Primary" });
 
-  await page.getByRole("link", { name: "Projects" }).click();
+  await openPrimaryNavigationIfCollapsed(page);
+  await primaryNavigation.getByRole("link", { name: "Projects" }).click();
   await expect(page).toHaveURL(/\/projects$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Projects" }),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Writings" }).click();
+  await openPrimaryNavigationIfCollapsed(page);
+  await primaryNavigation.getByRole("link", { name: "Writings" }).click();
   await expect(page).toHaveURL(/\/writings$/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Writings" }),

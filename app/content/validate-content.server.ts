@@ -54,6 +54,7 @@ function recordTypeForPath(path: readonly PropertyKey[]) {
   if (joined.startsWith("site.socialLinks")) return "SocialLink";
   if (joined.startsWith("site.resumeAssets")) return "ResumeAsset";
   if (joined.startsWith("site.images")) return "ImageAsset";
+  if (joined.startsWith("site.profileImage")) return "ProfileImage";
   if (joined.includes("responsibilities")) return "ExperienceClaim";
   if (joined.includes("roles")) return "ExperienceRole";
   if (joined.startsWith("professional.experiences")) return "Experience";
@@ -302,6 +303,13 @@ function validateCrossRecordRules(
   source.site.images.forEach((asset, index) => {
     registerId("ImageAsset", asset.id, `site.images.${String(index)}.id`);
   });
+  if (source.site.profileImage !== undefined) {
+    registerId(
+      "ProfileImage",
+      source.site.profileImage.id,
+      "site.profileImage.id",
+    );
+  }
 
   source.professional.experiences.forEach((experience, experienceIndex) => {
     registerId(
@@ -570,6 +578,88 @@ function validateCrossRecordRules(
     ...source.site.images.map((asset) => asset.id),
     ...source.site.resumeAssets.map((asset) => asset.id),
   ]);
+
+  const publishedResumeAssets = source.site.resumeAssets.filter(
+    (asset) => asset.publicationStatus === "published",
+  );
+  if (publishedResumeAssets.length > 1) {
+    for (const asset of publishedResumeAssets) {
+      add(
+        "ResumeAsset",
+        asset.id,
+        "site.resumeAssets",
+        "only one resume asset may be published",
+      );
+    }
+  }
+
+  const profileImage = source.site.profileImage;
+  if (profileImage !== undefined) {
+    checkUniqueReferences(
+      profileImage.mainAssetIds,
+      "ProfileImage",
+      profileImage.id,
+      "site.profileImage.mainAssetIds",
+    );
+    checkUniqueReferences(
+      profileImage.compactAssetIds,
+      "ProfileImage",
+      profileImage.id,
+      "site.profileImage.compactAssetIds",
+    );
+    checkUniqueReferences(
+      [...profileImage.mainAssetIds, ...profileImage.compactAssetIds],
+      "ProfileImage",
+      profileImage.id,
+      "site.profileImage.assetIds",
+    );
+
+    const checkProfileAsset = (
+      assetId: string,
+      index: number,
+      kind: "main" | "compact",
+    ) => {
+      const asset = imageById.get(assetId);
+      const fieldPath = `site.profileImage.${kind}AssetIds.${String(index)}`;
+
+      if (asset === undefined) {
+        add(
+          "ProfileImage",
+          profileImage.id,
+          fieldPath,
+          "references an unknown image asset",
+        );
+      } else if (asset.publicationStatus !== "published") {
+        add(
+          "ProfileImage",
+          profileImage.id,
+          fieldPath,
+          "references an image that is not published",
+        );
+      } else if (kind === "main" && asset.decorative) {
+        add(
+          "ProfileImage",
+          profileImage.id,
+          fieldPath,
+          "main portrait assets must provide meaningful alternative text",
+        );
+      } else if (kind === "compact" && !asset.decorative) {
+        add(
+          "ProfileImage",
+          profileImage.id,
+          fieldPath,
+          "compact identity assets must be decorative",
+        );
+      }
+    };
+
+    profileImage.mainAssetIds.forEach((assetId, index) => {
+      checkProfileAsset(assetId, index, "main");
+    });
+    profileImage.compactAssetIds.forEach((assetId, index) => {
+      checkProfileAsset(assetId, index, "compact");
+    });
+  }
 
   source.professional.experiences.forEach((experience, experienceIndex) => {
     experience.roles.forEach((role, roleIndex) => {
@@ -867,17 +957,50 @@ function validateCrossRecordRules(
           `site.assets.${String(index)}`,
           "is missing its separate build asset manifest entry",
         );
-      } else if (
-        asset.mediaType !== "application/pdf" &&
-        asset.publicationStatus === "published" &&
-        !manifest.metadataRemovalVerified
-      ) {
-        add(
-          "ImageAsset",
-          asset.id,
-          `assetManifest.${String(index)}.metadataRemovalVerified`,
-          "must verify metadata removal before an image is published",
-        );
+      } else {
+        if (
+          asset.publicationStatus === "published" &&
+          !manifest.metadataRemovalVerified
+        ) {
+          add(
+            asset.mediaType === "application/pdf"
+              ? "ResumeAsset"
+              : "ImageAsset",
+            asset.id,
+            `assetManifest.${String(index)}.metadataRemovalVerified`,
+            "must verify metadata removal before an asset is published",
+          );
+        }
+
+        if (asset.mediaType === "application/pdf") {
+          if (manifest.pageCount === undefined) {
+            add(
+              "ResumeAsset",
+              asset.id,
+              `assetManifest.${String(index)}.pageCount`,
+              "must record the verified PDF page count",
+            );
+          }
+          if (manifest.linkCount === undefined) {
+            add(
+              "ResumeAsset",
+              asset.id,
+              `assetManifest.${String(index)}.linkCount`,
+              "must record the verified PDF link count",
+            );
+          }
+          if (
+            asset.publicationStatus === "published" &&
+            manifest.linkValidationVerified !== true
+          ) {
+            add(
+              "ResumeAsset",
+              asset.id,
+              `assetManifest.${String(index)}.linkValidationVerified`,
+              "must verify PDF links before the asset is published",
+            );
+          }
+        }
       }
     },
   );

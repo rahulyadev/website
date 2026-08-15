@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes } from "react";
+import { forwardRef, type AnchorHTMLAttributes } from "react";
 
 import {
   getButtonClassName,
@@ -12,18 +12,19 @@ export interface LinkButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement>
   variant?: ButtonVariant;
 }
 
-export function LinkButton({
-  className,
-  size = "medium",
-  variant = "primary",
-  ...props
-}: LinkButtonProps) {
-  return (
-    <a
-      className={getButtonClassName(variant, size, className)}
-      data-size={size}
-      data-variant={variant}
-      {...props}
-    />
-  );
-}
+export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
+  function LinkButton(
+    { className, size = "medium", variant = "primary", ...props },
+    ref,
+  ) {
+    return (
+      <a
+        className={getButtonClassName(variant, size, className)}
+        data-size={size}
+        data-variant={variant}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
