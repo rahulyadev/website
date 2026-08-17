@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { LocalContentAdapter } from "../../app/content/local-content-adapter.server";
+import { internalPathSchema } from "../../app/content/content-schemas.server";
 import {
   ContentValidationError,
   validateContent,
@@ -86,7 +87,7 @@ function expectInvalid(
 }
 
 describe("content validation", () => {
-  it("accepts a complete snapshot and the empty production collections", async () => {
+  it("accepts complete fixture and production snapshots", async () => {
     const fixture = createValidContentFixture();
     const snapshot = validateContent(
       fixture,
@@ -96,7 +97,13 @@ describe("content validation", () => {
 
     expect(snapshot.projects).toHaveLength(3);
     expect(snapshot.writings).toHaveLength(3);
-    expect(productionSnapshot.projects).toEqual([]);
+    expect(productionSnapshot.projects).toHaveLength(4);
+    expect(productionSnapshot.projects.map((project) => project.slug)).toEqual([
+      "tourney",
+      "url-shortener",
+      "portfolio-tracker",
+      "universal-job-tracker",
+    ]);
     expect(productionSnapshot.writings).toEqual([]);
     expect(productionSnapshot.site.resumeAssets).toHaveLength(1);
     expect(productionSnapshot.site.resumeAssets[0]).toMatchObject({
@@ -130,11 +137,7 @@ describe("content validation", () => {
     ]);
     expect(
       experiences.map((experience) => experience.roles[0]?.location),
-    ).toEqual([
-      "Bengaluru, Karnataka, India",
-      "Bengaluru, Karnataka, India",
-      "Pune, Maharashtra, India",
-    ]);
+    ).toEqual(["Bengaluru, India", "Bengaluru, India", "Pune, India"]);
     expect(experiences[0]?.roles[0]?.engagement).toEqual({
       relationship: "customer",
       organization: "Airbus",
@@ -299,17 +302,17 @@ describe("content validation", () => {
     ],
     [
       "internal traversal",
-      ["projects", 0, "links", 0, "href"],
+      ["projects", 0, "seo", "canonicalPath"],
       "/projects/../private",
     ],
     [
       "encoded separator",
-      ["projects", 0, "links", 0, "href"],
+      ["projects", 0, "seo", "canonicalPath"],
       "/projects%2fprivate",
     ],
     [
       "duplicate internal separator",
-      ["projects", 0, "links", 0, "href"],
+      ["projects", 0, "seo", "canonicalPath"],
       "/projects//published-project",
     ],
   ])("rejects %s", (_name, path, value) => {
@@ -327,12 +330,6 @@ describe("content validation", () => {
       ["site", "socialLinks", 0, "url"],
       "https://example.test/profile",
     ],
-    ["root internal path", ["projects", 0, "links", 0, "href"], "/"],
-    [
-      "nested internal path",
-      ["projects", 0, "links", 0, "href"],
-      "/projects/example",
-    ],
   ])("accepts a valid %s", (_name, path, value) => {
     const fixture = createValidContentFixture();
     setAtPath(fixture, path, value);
@@ -341,6 +338,13 @@ describe("content validation", () => {
       validateContent(fixture, createValidAssetManifestFixture()),
     ).not.toThrow();
   });
+
+  it.each(["/", "/projects/example"])(
+    "accepts the normalized internal path %s",
+    (value) => {
+      expect(internalPathSchema.safeParse(value).success).toBe(true);
+    },
+  );
 
   it.each([
     ["year precision", "2020"],
@@ -589,14 +593,8 @@ describe("content validation", () => {
       "unknown experience claim",
     ],
     [
-      "related project",
-      ["projects", 0, "relatedProjectIds", 0],
-      "project-missing",
-      "unknown project",
-    ],
-    [
-      "project image",
-      ["projects", 0, "imageAssetIds", 0],
+      "project SEO image",
+      ["projects", 0, "seo", "socialImageAssetId"],
       "image-missing",
       "unknown image asset",
     ],
@@ -613,21 +611,34 @@ describe("content validation", () => {
     expect(expectInvalid(fixture).message).toContain(reason);
   });
 
-  it("rejects project self-references", () => {
+  it("rejects duplicate or incomplete planned stacks and unknown statuses", () => {
     const fixture = createValidContentFixture();
-    arrayAt(fixture, ["projects", 0, "relatedProjectIds"]).push(
-      "project-published",
+    arrayAt(fixture, ["projects", 0, "plannedStack"]).push("TypeScript");
+    expect(expectInvalid(fixture).message).toContain(
+      "duplicates technology label TypeScript",
     );
 
-    expect(expectInvalid(fixture).message).toContain("cannot reference itself");
+    const emptyStack = createValidContentFixture();
+    setAtPath(emptyStack, ["projects", 0, "plannedStack"], []);
+    expect(expectInvalid(emptyStack).message).toContain(
+      "at least one planned technology",
+    );
+
+    const unknownStatus = createValidContentFixture();
+    setAtPath(unknownStatus, ["projects", 0, "status"], "planning");
+    expect(expectInvalid(unknownStatus).message).toMatch(/wip|beta|live/);
+
+    const missingHomeTechnology = createValidContentFixture();
+    setAtPath(missingHomeTechnology, ["projects", 0, "homeStack", 0], "React");
+    expect(expectInvalid(missingHomeTechnology).message).toContain(
+      "complete planned stack",
+    );
   });
 
   it("rejects incomplete published records", () => {
     const project = createValidContentFixture();
     deleteAtPath(project, ["projects", 0, "summary"]);
-    expect(expectInvalid(project).message).toContain(
-      "published projects require complete",
-    );
+    expect(expectInvalid(project).message).toContain("expected string");
 
     const writing = createValidContentFixture();
     deleteAtPath(writing, ["writings", 0, "article"]);

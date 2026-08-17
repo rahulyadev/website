@@ -29,7 +29,7 @@ export const siteContent = {
     projects: {
       title: "Projects | Rahul Yadav",
       description:
-        "Approved project case studies will be added in a later portfolio milestone.",
+        "A working roadmap of useful products Rahul Yadav plans to build, with four projects currently marked work in progress.",
       canonicalPath: "/projects",
     },
     writings: {

@@ -1,4 +1,9 @@
-import type { SeoMetadata, SkillGroupCategory } from "./content";
+import type {
+  ProjectMarkId,
+  ProjectStatus,
+  SeoMetadata,
+  SkillGroupCategory,
+} from "./content";
 
 export interface ResponsiveImageVariant {
   readonly height: number;
@@ -80,6 +85,57 @@ export interface HomeCredibilityCardData {
     | undefined;
 }
 
+export interface ProjectCardData {
+  readonly slug: string;
+  readonly name: string;
+  readonly summary: string;
+  readonly status: ProjectStatus;
+  readonly plannedDestination: string;
+  readonly plannedStack: readonly string[];
+  readonly projectMark: ProjectMarkId;
+}
+
+export interface ProjectsPageData {
+  readonly canonicalOrigin: string;
+  readonly seo: SeoMetadata;
+  readonly items: readonly ProjectCardData[];
+}
+
+export interface ProjectSiblingData {
+  readonly name: string;
+  readonly path: string;
+}
+
+export interface ProjectDetailData {
+  readonly slug: string;
+  readonly name: string;
+  readonly summary: string;
+  readonly status: ProjectStatus;
+  readonly plannedDestination: string;
+  readonly plannedShortLinkPattern?: string | undefined;
+  readonly plannedCapabilities: readonly string[];
+  readonly plannedStack: readonly string[];
+  readonly stackRationale: string;
+  readonly laterPossibilities: readonly string[];
+  readonly disclaimer?: string | undefined;
+  readonly projectMark: ProjectMarkId;
+  readonly seo: SeoMetadata;
+}
+
+export interface ProjectDetailPageData {
+  readonly canonicalOrigin: string;
+  readonly project: ProjectDetailData;
+  readonly previousProject?: ProjectSiblingData | undefined;
+  readonly nextProject?: ProjectSiblingData | undefined;
+}
+
+export type ProjectDetailPageLookup =
+  | { readonly kind: "found"; readonly data: ProjectDetailPageData }
+  | {
+      readonly kind: "not-found";
+      readonly requestedSlug: string;
+    };
+
 export interface HomePageData {
   readonly canonicalOrigin: string;
   readonly seo: SeoMetadata;
@@ -93,6 +149,7 @@ export interface HomePageData {
   };
   readonly credibilityCards: readonly HomeCredibilityCardData[];
   readonly experiences: readonly HomeExperienceData[];
+  readonly projects: readonly ProjectCardData[];
   readonly skillGroups: readonly HomeSkillGroupData[];
   readonly education: readonly HomeEducationData[];
   readonly contacts: readonly {

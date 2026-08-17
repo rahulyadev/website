@@ -95,6 +95,12 @@
   display: none;
 }
 
+.site-navigation-region {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+}
+
 :root[data-javascript="enabled"] .site-menu-toggle {
   display: inline-flex;
 }
@@ -210,6 +216,11 @@
   :root[data-javascript="enabled"] .site-menu-toggle,
   .site-menu-toggle {
     display: none;
+  }
+
+  .site-navigation-region {
+    min-width: 0;
+    justify-content: flex-end;
   }
 
   :root[data-javascript="enabled"] .site-navigation-panel[data-open="false"],

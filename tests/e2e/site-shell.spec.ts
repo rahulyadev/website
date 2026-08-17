@@ -475,7 +475,16 @@ test("contact details, compact actions, outbound links, and approved resume work
   await expect(page.getByRole("tooltip", { name: "Copy email" })).toBeVisible();
   await expectMinimumTarget(copyEmail);
   await copyEmail.click();
-  await expect(page.getByRole("status")).toHaveText("Email address copied.");
+  await expect(copyEmail).toHaveAttribute("data-copy-status", "copied");
+  await expect(copyEmail.locator("rect")).toHaveCount(0);
+  await expect(
+    copyEmail.locator('path[d="m5 12.5 4.5 4.5L19 7.5"]'),
+  ).toHaveCount(1);
+  await expect(page.getByRole("tooltip", { name: "Copied" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("Email copied");
+  await expect(copyEmail).toHaveAttribute("data-copy-status", "idle", {
+    timeout: 3_000,
+  });
 
   const phoneLink = page.locator('.contact-actions a[href^="tel:"]');
   await expect(phoneLink).toBeVisible();

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -45,6 +45,7 @@ function setClipboard(writeText: (value: string) => Promise<void>) {
 
 afterEach(() => {
   Reflect.deleteProperty(navigator, "clipboard");
+  vi.useRealTimers();
 });
 
 describe("ContactActions", () => {
@@ -113,11 +114,16 @@ describe("ContactActions", () => {
     });
     expect(copyButton).toHaveAccessibleDescription("Copy email");
     expect(screen.getByRole("tooltip", { name: "Copy email" })).toBeVisible();
+    expect(copyButton.querySelector("rect")).not.toBeNull();
     await user.click(copyButton);
     expect(writeText).toHaveBeenCalledWith("hello@example.test");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Email address copied.",
-    );
+    expect(copyButton).toHaveAttribute("data-copy-status", "copied");
+    expect(copyButton.querySelector("rect")).toBeNull();
+    expect(
+      copyButton.querySelector('path[d="m5 12.5 4.5 4.5L19 7.5"]'),
+    ).not.toBeNull();
+    expect(screen.getByRole("tooltip", { name: "Copied" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Email copied");
   });
 
   it("announces a useful fallback when clipboard access fails", async () => {
@@ -139,5 +145,75 @@ describe("ContactActions", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "Copy failed. Use the email link instead.",
     );
+    const copyButton = screen.getByRole("button", {
+      name: "Copy email address",
+    });
+    expect(copyButton).toHaveAttribute("data-copy-status", "idle");
+    expect(copyButton.querySelector("rect")).not.toBeNull();
+    expect(screen.queryByRole("tooltip", { name: "Copied" })).toBeNull();
+  });
+
+  it("resets successful copying after two seconds and restarts the timeout", async () => {
+    vi.useFakeTimers();
+    const writeText = vi.fn<(value: string) => Promise<void>>(() =>
+      Promise.resolve(),
+    );
+    setClipboard(writeText);
+    render(
+      <ContactActions
+        contacts={contacts}
+        location="London, United Kingdom"
+        resume={resume}
+        socialLinks={socialLinks}
+      />,
+    );
+
+    const copyButton = screen.getByRole("button", {
+      name: "Copy email address",
+    });
+    fireEvent.click(copyButton);
+    await act(async () => Promise.resolve());
+    expect(copyButton).toHaveAttribute("data-copy-status", "copied");
+
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    fireEvent.click(copyButton);
+    await act(async () => Promise.resolve());
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    expect(copyButton).toHaveAttribute("data-copy-status", "copied");
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    expect(copyButton).toHaveAttribute("data-copy-status", "idle");
+    expect(writeText).toHaveBeenCalledTimes(2);
+  });
+
+  it("supports keyboard activation", async () => {
+    const writeText = vi.fn<(value: string) => Promise<void>>(() =>
+      Promise.resolve(),
+    );
+    const user = userEvent.setup();
+    setClipboard(writeText);
+    render(
+      <ContactActions
+        contacts={contacts}
+        location="London, United Kingdom"
+        resume={resume}
+        socialLinks={socialLinks}
+      />,
+    );
+
+    const copyButton = screen.getByRole("button", {
+      name: "Copy email address",
+    });
+    copyButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(writeText).toHaveBeenCalledWith("hello@example.test");
+    expect(copyButton).toHaveAttribute("data-copy-status", "copied");
   });
 });

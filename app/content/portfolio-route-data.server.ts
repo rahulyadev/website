@@ -1,6 +1,7 @@
 import type {
   CredibilityHighlight,
   DateRange,
+  PublishedProject,
   PublicImageAsset,
 } from "../domain/content";
 import type {
@@ -8,6 +9,9 @@ import type {
   HomePageData,
   HomeTextSegmentData,
   OrganizationLogoData,
+  ProjectCardData,
+  ProjectDetailPageLookup,
+  ProjectsPageData,
   ResponsiveImageData,
   SiteShellData,
 } from "../domain/route-data";
@@ -88,6 +92,21 @@ function projectOrganizationLogo(
 
   const { path, width, height, altText } = asset;
   return { path, width, height, altText };
+}
+
+function projectCardData(
+  project: PublishedProject,
+  plannedStack: readonly string[],
+): ProjectCardData {
+  return {
+    slug: project.slug,
+    name: project.name,
+    summary: project.summary,
+    status: project.status,
+    plannedDestination: project.plannedDestination,
+    plannedStack,
+    projectMark: project.projectMark,
+  };
 }
 
 const requiredCredibilityEvidence = [
@@ -253,6 +272,83 @@ export async function loadSiteShellData(
   };
 }
 
+export async function loadProjectsPageData(
+  repository: ContentRepository = getContentRepository(),
+): Promise<ProjectsPageData> {
+  const collection = await repository.getPublishedProjects();
+
+  return {
+    canonicalOrigin: collection.canonicalOrigin,
+    seo: collection.seo,
+    items: collection.items.map((project) =>
+      projectCardData(project, project.plannedStack),
+    ),
+  };
+}
+
+export async function loadProjectDetailPageData(
+  slug: string,
+  repository: ContentRepository = getContentRepository(),
+): Promise<ProjectDetailPageLookup> {
+  const [lookup, collection] = await Promise.all([
+    repository.getProjectBySlug(slug),
+    repository.getPublishedProjects(),
+  ]);
+
+  if (lookup.kind === "not-found") {
+    return { kind: "not-found", requestedSlug: lookup.requestedSlug };
+  }
+
+  const projectIndex = collection.items.findIndex(
+    (project) => project.slug === lookup.content.slug,
+  );
+  if (projectIndex < 0) {
+    throw new Error(
+      `Published project ${lookup.content.slug} is missing from its collection.`,
+    );
+  }
+
+  const siblingData = (project: PublishedProject | undefined) =>
+    project === undefined
+      ? undefined
+      : { name: project.name, path: `/projects/${project.slug}` };
+  const project = lookup.content;
+  const previousProject = siblingData(collection.items[projectIndex - 1]);
+  const nextProject = siblingData(collection.items[projectIndex + 1]);
+
+  return {
+    kind: "found",
+    data: {
+      canonicalOrigin: collection.canonicalOrigin,
+      project: {
+        slug: project.slug,
+        name: project.name,
+        summary: project.summary,
+        status: project.status,
+        plannedDestination: project.plannedDestination,
+        ...(project.plannedShortLinkPattern === undefined
+          ? {}
+          : { plannedShortLinkPattern: project.plannedShortLinkPattern }),
+        plannedCapabilities: [...project.plannedCapabilities]
+          .sort((left, right) => left.order - right.order)
+          .map((capability) => capability.text),
+        plannedStack: project.plannedStack,
+        stackRationale: project.stackRationale,
+        laterPossibilities: [...project.laterPossibilities]
+          .sort((left, right) => left.order - right.order)
+          .map((possibility) => possibility.text),
+        ...(project.disclaimer === undefined
+          ? {}
+          : { disclaimer: project.disclaimer }),
+        projectMark: project.projectMark,
+        seo: project.seo,
+      },
+      ...(previousProject === undefined ? {} : { previousProject }),
+      ...(nextProject === undefined ? {} : { nextProject }),
+    },
+  };
+}
+
 export async function loadHomePageData(
   repository: ContentRepository = getContentRepository(),
 ): Promise<HomePageData> {
@@ -340,6 +436,9 @@ export async function loadHomePageData(
         technologies: role.technologies.map(({ name }) => name),
       })),
     })),
+    projects: overview.featuredProjects.map((project) =>
+      projectCardData(project, project.homeStack),
+    ),
     skillGroups: overview.skillGroups.map(({ category, name, skills }) => ({
       category,
       name,

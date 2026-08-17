@@ -3,8 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
+import { ExperienceSection } from "../../app/components/home/experience-section";
 import App, { loader as rootLoader } from "../../app/root";
 import Home, { loader as homeLoader } from "../../app/routes/home";
+import ProjectDetail, {
+  loader as projectDetailLoader,
+} from "../../app/routes/project-detail";
 import Projects, { loader as projectsLoader } from "../../app/routes/projects";
 import Writings, { loader as writingsLoader } from "../../app/routes/writings";
 
@@ -19,6 +23,11 @@ const ContentRoutes = createRoutesStub([
     children: [
       { index: true, Component: Home, loader: homeLoader },
       { path: "projects", Component: Projects, loader: projectsLoader },
+      {
+        path: "projects/:slug",
+        Component: ProjectDetail,
+        loader: projectDetailLoader,
+      },
       { path: "writings", Component: Writings, loader: writingsLoader },
     ],
   },
@@ -41,6 +50,7 @@ describe("content routes", () => {
       "identity",
       "location",
       "portrait",
+      "projects",
       "resume",
       "seo",
       "skillGroups",
@@ -68,7 +78,6 @@ describe("content routes", () => {
   });
 
   it("renders semantic professional sections, native disclosure, and resilient logo identity", async () => {
-    const user = userEvent.setup();
     renderRoute("/");
 
     expect(
@@ -113,6 +122,7 @@ describe("content routes", () => {
       "about",
       "credibility",
       "experience",
+      "projects",
       "skills",
       "education",
       "contact",
@@ -198,13 +208,22 @@ describe("content routes", () => {
     );
     expect(screen.getByText("35%")).toHaveProperty("tagName", "STRONG");
 
-    const disclosures = screen.getAllByText(/Show \d+ more contributions/);
+    const disclosures = screen.getAllByRole("button", {
+      name: /Show \d+ more contributions/,
+    });
     expect(disclosures).toHaveLength(2);
-    const firstDetails = disclosures[0]?.closest("details");
+    const firstDisclosure = disclosures[0];
+    const firstDetails = firstDisclosure?.closest("details");
     expect(firstDetails).not.toBeNull();
     expect(firstDetails).not.toHaveAttribute("open");
-    if (disclosures[0] !== undefined) await user.click(disclosures[0]);
-    expect(firstDetails).toHaveAttribute("open");
+    expect(firstDisclosure).toHaveTextContent("Show 3 more contributions");
+    expect(firstDisclosure).toHaveAttribute("aria-expanded", "false");
+    const controlledId = firstDisclosure?.getAttribute("aria-controls");
+    expect(controlledId).toBeTruthy();
+    expect(document.getElementById(controlledId ?? "")).toHaveAttribute(
+      "start",
+      "4",
+    );
 
     const skillItems = [
       ...document.querySelectorAll<HTMLLIElement>(
@@ -274,7 +293,35 @@ describe("content routes", () => {
       "Made with ❤️ in India · Thank you for visiting.",
     );
     expect(document.querySelector(".site-footer__identity")).toBeNull();
-    expect(screen.getByRole("img", { name: "love" })).toBeVisible();
+    expect(screen.getAllByRole("img", { name: "love" })).toHaveLength(2);
+  });
+
+  it("updates the contribution disclosure label through the pointer cycle", async () => {
+    const data = await homeLoader();
+    const user = userEvent.setup();
+    render(<ExperienceSection experiences={data.experiences} />);
+
+    const disclosure = screen.getByRole("button", {
+      name: "Show 3 more contributions",
+    });
+    const details = disclosure.closest("details");
+    const controlledId = disclosure.getAttribute("aria-controls");
+    expect(details).not.toHaveAttribute("open");
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById(controlledId ?? "")?.children).toHaveLength(
+      3,
+    );
+
+    await user.click(disclosure);
+    expect(details).toHaveAttribute("open");
+    expect(disclosure).toHaveTextContent("Hide 3 more contributions");
+    expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    expect(disclosure).toHaveFocus();
+
+    await user.click(disclosure);
+    expect(details).not.toHaveAttribute("open");
+    expect(disclosure).toHaveTextContent("Show 3 more contributions");
+    expect(disclosure).toHaveAttribute("aria-expanded", "false");
   });
 
   it("obtains a smaller root shell projection for every route", async () => {
@@ -291,8 +338,15 @@ describe("content routes", () => {
     expect(JSON.stringify(data)).not.toContain("sourcePath");
   });
 
-  it("obtains valid empty project and writing collections through loaders", async () => {
-    await expect(projectsLoader()).resolves.toMatchObject({ items: [] });
+  it("obtains the four project plans and empty writing collection through loaders", async () => {
+    await expect(projectsLoader()).resolves.toMatchObject({
+      items: [
+        { slug: "tourney" },
+        { slug: "url-shortener" },
+        { slug: "portfolio-tracker" },
+        { slug: "universal-job-tracker" },
+      ],
+    });
     await expect(writingsLoader()).resolves.toMatchObject({ items: [] });
   });
 
@@ -309,14 +363,14 @@ describe("content routes", () => {
     expect(document.querySelectorAll("h1")).toHaveLength(1);
   });
 
-  it.each([
-    ["/projects", "No published projects are available yet."],
-    ["/writings", "No published writings are available yet."],
-  ])("renders an accessible empty state for %s", async (path, message) => {
-    renderRoute(path);
+  it.each([["/writings", "No published writings are available yet."]])(
+    "renders an accessible empty state for %s",
+    async (path, message) => {
+      renderRoute(path);
 
-    expect(await screen.findByText(message)).toBeVisible();
-  });
+      expect(await screen.findByText(message)).toBeVisible();
+    },
+  );
 
   it("provides semantic navigation and a working skip link", async () => {
     const user = userEvent.setup();
@@ -375,9 +429,7 @@ describe("content routes", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "Projects" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("No published projects are available yet."),
-    ).toBeVisible();
+    expect(screen.getAllByText("View project plan")).toHaveLength(4);
   });
 
   it("marks the current primary navigation item and shows compact identity off home", async () => {
@@ -411,5 +463,38 @@ describe("content routes", () => {
 
     expect(menuButton).toHaveFocus();
     expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps inside pointer interactions open and closes outside touch-equivalent pointers with cleanup", async () => {
+    const addListener = vi.spyOn(document, "addEventListener");
+    const removeListener = vi.spyOn(document, "removeEventListener");
+    const user = userEvent.setup();
+    renderRoute("/");
+
+    const menuButton = await screen.findByRole("button", {
+      name: "Open navigation",
+    });
+    await user.click(menuButton);
+    const closeButton = screen.getByRole("button", {
+      name: "Close navigation",
+    });
+    const primaryNavigation = screen.getByRole("navigation", {
+      name: "Primary",
+    });
+    expect(closeButton).toHaveAttribute("aria-expanded", "true");
+    expect(addListener).toHaveBeenCalledWith(
+      "pointerdown",
+      expect.any(Function),
+    );
+
+    fireEvent.pointerDown(primaryNavigation, { pointerType: "touch" });
+    expect(closeButton).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.pointerDown(screen.getByRole("main"), { pointerType: "touch" });
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    expect(removeListener).toHaveBeenCalledWith(
+      "pointerdown",
+      expect.any(Function),
+    );
   });
 });

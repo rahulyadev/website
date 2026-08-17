@@ -318,6 +318,10 @@
   flex: 0 0 auto;
 }
 
+.contact-actions__copy-control .ui-icon-button[data-copy-status="copied"] {
+  color: var(--color-positive);
+}
+
 .contact-actions__copy-tooltip {
   position: absolute;
   z-index: calc(var(--layer-sticky) + 1);

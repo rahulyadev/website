@@ -2,10 +2,7 @@ import type { z } from "zod";
 
 import type {
   LocalContentSource,
-  ProjectRecord,
-  PublishedProject,
   PublishedWriting,
-  UnpublishedProject,
   UnpublishedWriting,
   ValidatedContentSnapshot,
   WritingRecord,
@@ -121,31 +118,6 @@ function diagnosticFromIssue(
   };
 }
 
-function hasPublishedProjectFields(
-  project: ProjectRecord,
-): project is PublishedProject {
-  return (
-    project.publicationStatus === "published" &&
-    project.projectStatus !== undefined &&
-    project.summary !== undefined &&
-    project.problem !== undefined &&
-    project.role !== undefined &&
-    project.approach !== undefined &&
-    project.architecture !== undefined &&
-    project.order !== undefined &&
-    project.seo !== undefined &&
-    project.decisions.length > 0 &&
-    project.outcomes.length > 0 &&
-    project.technologyIds.length > 0
-  );
-}
-
-function isUnpublishedProject(
-  project: ProjectRecord,
-): project is UnpublishedProject {
-  return project.publicationStatus !== "published";
-}
-
 function hasPublishedWritingFields(
   writing: WritingRecord,
 ): writing is PublishedWriting {
@@ -162,16 +134,6 @@ function isUnpublishedWriting(
   writing: WritingRecord,
 ): writing is UnpublishedWriting {
   return writing.metadata.publicationStatus !== "published";
-}
-
-function projectProjection(
-  project: ProjectRecord,
-): PublishedProject | UnpublishedProject {
-  if (hasPublishedProjectFields(project) || isUnpublishedProject(project)) {
-    return project;
-  }
-
-  throw new Error("Validated published project lost publication eligibility.");
 }
 
 function writingProjection(
@@ -266,6 +228,30 @@ function validateCrossRecordRules(
         );
       }
       seen.add(reference);
+    });
+  };
+
+  const checkUniqueLabels = (
+    labels: readonly string[],
+    recordType: string,
+    recordId: string,
+    fieldPath: string,
+  ) => {
+    const seen = new Map<string, string>();
+
+    labels.forEach((label, index) => {
+      const normalized = label.toLocaleLowerCase("en-US");
+      const existing = seen.get(normalized);
+      if (existing !== undefined) {
+        add(
+          recordType,
+          recordId,
+          `${fieldPath}.${String(index)}`,
+          `duplicates technology label ${existing}`,
+        );
+      } else {
+        seen.set(normalized, label);
+      }
     });
   };
 
@@ -383,25 +369,18 @@ function validateCrossRecordRules(
 
   source.projects.forEach((project, projectIndex) => {
     registerId("Project", project.id, `projects.${String(projectIndex)}.id`);
-    project.decisions.forEach((decision, decisionIndex) => {
+    project.plannedCapabilities.forEach((capability, capabilityIndex) => {
       registerId(
-        "ProjectDecision",
-        decision.id,
-        `projects.${String(projectIndex)}.decisions.${String(decisionIndex)}.id`,
+        "ProjectCapability",
+        capability.id,
+        `projects.${String(projectIndex)}.plannedCapabilities.${String(capabilityIndex)}.id`,
       );
     });
-    project.outcomes.forEach((outcome, outcomeIndex) => {
+    project.laterPossibilities.forEach((possibility, possibilityIndex) => {
       registerId(
-        "ProjectOutcome",
-        outcome.id,
-        `projects.${String(projectIndex)}.outcomes.${String(outcomeIndex)}.id`,
-      );
-    });
-    project.links.forEach((link, linkIndex) => {
-      registerId(
-        "ProjectLink",
-        link.id,
-        `projects.${String(projectIndex)}.links.${String(linkIndex)}.id`,
+        "ProjectPossibility",
+        possibility.id,
+        `projects.${String(projectIndex)}.laterPossibilities.${String(possibilityIndex)}.id`,
       );
     });
   });
@@ -513,13 +492,6 @@ function validateCrossRecordRules(
     (project) => project.order,
   );
   checkOrders(
-    source.projects,
-    "Project",
-    "projects.featured",
-    (project) => project.id,
-    (project) => project.featuredOrder,
-  );
-  checkOrders(
     source.writings,
     "Writing",
     "writings.featured",
@@ -529,25 +501,18 @@ function validateCrossRecordRules(
 
   source.projects.forEach((project, projectIndex) => {
     checkOrders(
-      project.decisions,
-      "ProjectDecision",
-      `projects.${String(projectIndex)}.decisions`,
-      (decision) => decision.id,
-      (decision) => decision.order,
+      project.plannedCapabilities,
+      "ProjectCapability",
+      `projects.${String(projectIndex)}.plannedCapabilities`,
+      (capability) => capability.id,
+      (capability) => capability.order,
     );
     checkOrders(
-      project.outcomes,
-      "ProjectOutcome",
-      `projects.${String(projectIndex)}.outcomes`,
-      (outcome) => outcome.id,
-      (outcome) => outcome.order,
-    );
-    checkOrders(
-      project.links,
-      "ProjectLink",
-      `projects.${String(projectIndex)}.links`,
-      (link) => link.id,
-      (link) => link.order,
+      project.laterPossibilities,
+      "ProjectPossibility",
+      `projects.${String(projectIndex)}.laterPossibilities`,
+      (possibility) => possibility.id,
+      (possibility) => possibility.order,
     );
   });
 
@@ -576,6 +541,14 @@ function validateCrossRecordRules(
     source.projects.map((project) => ({ id: project.id, value: project.slug })),
     "Project",
     "projects.slug",
+  );
+  duplicateValue(
+    source.projects.map((project) => ({
+      id: project.id,
+      value: project.plannedDestination,
+    })),
+    "Project",
+    "projects.plannedDestination",
   );
   duplicateValue(
     source.writings.map((writing) => ({
@@ -607,9 +580,6 @@ function validateCrossRecordRules(
         role.responsibilities.map((claim) => claim.id),
       ),
     ),
-  );
-  const projectById = new Map(
-    source.projects.map((project) => [project.id, project]),
   );
   const imageById = new Map(
     source.site.images.map((image) => [image.id, image]),
@@ -829,41 +799,20 @@ function validateCrossRecordRules(
   );
 
   source.projects.forEach((project, projectIndex) => {
-    checkUniqueReferences(
-      project.technologyIds,
+    checkUniqueLabels(
+      project.plannedStack,
       "Project",
       project.id,
-      `projects.${String(projectIndex)}.technologyIds`,
+      `projects.${String(projectIndex)}.plannedStack`,
     );
-    checkUniqueReferences(
-      project.relatedProjectIds,
+    checkUniqueLabels(
+      project.homeStack,
       "Project",
       project.id,
-      `projects.${String(projectIndex)}.relatedProjectIds`,
-    );
-    checkUniqueReferences(
-      project.imageAssetIds,
-      "Project",
-      project.id,
-      `projects.${String(projectIndex)}.imageAssetIds`,
+      `projects.${String(projectIndex)}.homeStack`,
     );
 
-    if (
-      project.publicationStatus === "published" &&
-      !hasPublishedProjectFields(project)
-    ) {
-      add(
-        "Project",
-        project.id,
-        `projects.${String(projectIndex)}`,
-        "published projects require complete status, summary, case-study sections, order, technologies, decisions, outcomes, and SEO",
-      );
-    }
-
-    if (
-      project.seo !== undefined &&
-      project.seo.canonicalPath !== `/projects/${project.slug}`
-    ) {
+    if (project.seo.canonicalPath !== `/projects/${project.slug}`) {
       add(
         "Project",
         project.id,
@@ -872,60 +821,37 @@ function validateCrossRecordRules(
       );
     }
 
-    project.technologyIds.forEach((skillId, skillIndex) => {
-      if (!skillIds.has(skillId)) {
+    const plannedStack = new Set(project.plannedStack);
+    project.homeStack.forEach((technology, technologyIndex) => {
+      if (!plannedStack.has(technology)) {
         add(
           "Project",
           project.id,
-          `projects.${String(projectIndex)}.technologyIds.${String(skillIndex)}`,
-          "references an unknown skill",
+          `projects.${String(projectIndex)}.homeStack.${String(technologyIndex)}`,
+          "must also appear in the complete planned stack",
         );
       }
     });
 
-    project.relatedProjectIds.forEach((relatedId, relatedIndex) => {
-      if (relatedId === project.id) {
-        add(
-          "Project",
-          project.id,
-          `projects.${String(projectIndex)}.relatedProjectIds.${String(relatedIndex)}`,
-          "cannot reference itself",
-        );
-        return;
-      }
-
-      const related = projectById.get(relatedId);
-      if (related === undefined) {
-        add(
-          "Project",
-          project.id,
-          `projects.${String(projectIndex)}.relatedProjectIds.${String(relatedIndex)}`,
-          "references an unknown project",
-        );
-      } else if (
-        project.publicationStatus === "published" &&
-        related.publicationStatus !== "published"
+    if (project.plannedShortLinkPattern !== undefined) {
+      const expectedPrefix = `${project.plannedDestination}/`;
+      const placeholderCount =
+        project.plannedShortLinkPattern.split("{id}").length - 1;
+      if (
+        !project.plannedShortLinkPattern.startsWith(expectedPrefix) ||
+        placeholderCount !== 1
       ) {
         add(
           "Project",
           project.id,
-          `projects.${String(projectIndex)}.relatedProjectIds.${String(relatedIndex)}`,
-          "a published project cannot reference an unpublished project",
+          `projects.${String(projectIndex)}.plannedShortLinkPattern`,
+          "must begin with the planned destination and contain one {id} placeholder",
         );
       }
-    });
+    }
 
-    project.imageAssetIds.forEach((imageId, imageIndex) => {
-      checkImageReference(
-        imageId,
-        "Project",
-        project.id,
-        `projects.${String(projectIndex)}.imageAssetIds.${String(imageIndex)}`,
-        project.publicationStatus === "published",
-      );
-    });
     checkImageReference(
-      project.seo?.socialImageAssetId,
+      project.seo.socialImageAssetId,
       "Project",
       project.id,
       `projects.${String(projectIndex)}.seo.socialImageAssetId`,
@@ -1223,7 +1149,7 @@ export function validateContent(
   return {
     site: source.site,
     professional: source.professional,
-    projects: source.projects.map(projectProjection),
+    projects: source.projects,
     writings: source.writings.map(writingProjection),
   };
 }

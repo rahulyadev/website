@@ -142,51 +142,58 @@ export interface Education {
 
 export type PublicationStatus = "draft" | "published" | "archived";
 
-export interface PublicLink {
-  readonly id: StableId;
-  readonly kind: "internal" | "external" | "live" | "source";
-  readonly label: string;
-  readonly href: string;
-  readonly order: number;
+export type ProjectStatus = "wip" | "beta" | "live";
+
+export const PROJECT_SLUG = {
+  tourney: "tourney",
+  urlShortener: "url-shortener",
+  portfolioTracker: "portfolio-tracker",
+  universalJobTracker: "universal-job-tracker",
+} as const;
+
+export const PROJECT_SLUGS = [
+  PROJECT_SLUG.tourney,
+  PROJECT_SLUG.urlShortener,
+  PROJECT_SLUG.portfolioTracker,
+  PROJECT_SLUG.universalJobTracker,
+] as const;
+
+export type ProjectSlug = (typeof PROJECT_SLUGS)[number];
+export type ProjectMarkId = ProjectSlug;
+
+export function isProjectSlug(value: string | undefined): value is ProjectSlug {
+  return PROJECT_SLUGS.some((slug) => slug === value);
 }
 
-export interface ProjectRecord {
+interface ProjectFields {
   readonly id: StableId;
   readonly slug: Slug;
-  readonly title: string;
-  readonly publicationStatus: PublicationStatus;
-  readonly projectStatus?: string | undefined;
-  readonly summary?: string | undefined;
-  readonly problem?: string | undefined;
-  readonly role?: string | undefined;
-  readonly approach?: string | undefined;
-  readonly architecture?: string | undefined;
-  readonly order?: number | undefined;
-  readonly featuredOrder?: number | undefined;
-  readonly decisions: readonly OrderedStatement[];
-  readonly outcomes: readonly OrderedStatement[];
-  readonly technologyIds: readonly StableId[];
-  readonly links: readonly PublicLink[];
-  readonly imageAssetIds: readonly StableId[];
-  readonly relatedProjectIds: readonly StableId[];
-  readonly seo?: SeoMetadata | undefined;
-}
-
-export interface PublishedProject extends ProjectRecord {
-  readonly publicationStatus: "published";
-  readonly projectStatus: string;
+  readonly name: string;
   readonly summary: string;
-  readonly problem: string;
-  readonly role: string;
-  readonly approach: string;
-  readonly architecture: string;
+  readonly status: ProjectStatus;
   readonly order: number;
+  readonly plannedDestination: string;
+  readonly plannedShortLinkPattern?: string | undefined;
+  readonly plannedCapabilities: readonly OrderedStatement[];
+  readonly plannedStack: readonly string[];
+  readonly homeStack: readonly string[];
+  readonly stackRationale: string;
+  readonly laterPossibilities: readonly OrderedStatement[];
+  readonly disclaimer?: string | undefined;
+  readonly featuredOnHome: boolean;
+  readonly projectMark: ProjectMarkId;
   readonly seo: SeoMetadata;
 }
 
-export interface UnpublishedProject extends ProjectRecord {
+export interface PublishedProject extends ProjectFields {
+  readonly publicationStatus: "published";
+}
+
+export interface UnpublishedProject extends ProjectFields {
   readonly publicationStatus: "draft" | "archived";
 }
+
+export type ProjectRecord = PublishedProject | UnpublishedProject;
 
 export interface ProvisionalArticleContent {
   readonly format: "provisional";

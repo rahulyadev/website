@@ -190,6 +190,41 @@ function readDocumentTitle(html) {
   return html.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i)?.[1].trim();
 }
 
+function decodeBasicHtmlEntities(value) {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'");
+}
+
+function readableElementText(value) {
+  return decodeBasicHtmlEntities(
+    value.replaceAll(/<!--[\s\S]*?-->/g, "").replaceAll(/<[^>]+>/g, " "),
+  )
+    .replaceAll(/\s+/g, " ")
+    .trim();
+}
+
+function readHeadingTexts(html, level) {
+  return [
+    ...html.matchAll(
+      new RegExp(
+        `<h${String(level)}\\b[^>]*>([\\s\\S]*?)<\\/h${String(level)}>`,
+        "gi",
+      ),
+    ),
+  ].map((match) => readableElementText(match[1] ?? ""));
+}
+
+function readAnchors(html) {
+  return [...html.matchAll(/<a\b[^>]*>[\s\S]*?<\/a>/gi)].map(([tag]) => ({
+    href: readQuotedAttribute(tag, "href"),
+    text: readableElementText(tag),
+  }));
+}
+
 function readCanonicalHrefs(html) {
   return [...html.matchAll(/<link\b[^>]*>/gi)]
     .filter(([tag]) =>
@@ -530,6 +565,7 @@ const expectedDocuments = new Map([
       title: "Rahul Yadav | Senior Software Engineer",
       heading: "Rahul Yadav",
       canonical: "https://rahuly.in/",
+      indexable: true,
     },
   ],
   [
@@ -538,6 +574,7 @@ const expectedDocuments = new Map([
       title: "Projects | Rahul Yadav",
       heading: "Projects",
       canonical: "https://rahuly.in/projects",
+      indexable: true,
     },
   ],
   [
@@ -546,6 +583,43 @@ const expectedDocuments = new Map([
       title: "Writings | Rahul Yadav",
       heading: "Writings",
       canonical: "https://rahuly.in/writings",
+      indexable: true,
+    },
+  ],
+  [
+    "projects/tourney/index.html",
+    {
+      title: "Tourney — Work in progress | Rahul Yadav",
+      heading: "Tourney",
+      canonical: "https://rahuly.in/projects/tourney",
+      indexable: false,
+    },
+  ],
+  [
+    "projects/url-shortener/index.html",
+    {
+      title: "URL Shortener — Work in progress | Rahul Yadav",
+      heading: "URL Shortener",
+      canonical: "https://rahuly.in/projects/url-shortener",
+      indexable: false,
+    },
+  ],
+  [
+    "projects/portfolio-tracker/index.html",
+    {
+      title: "Portfolio Tracker — Work in progress | Rahul Yadav",
+      heading: "Portfolio Tracker",
+      canonical: "https://rahuly.in/projects/portfolio-tracker",
+      indexable: false,
+    },
+  ],
+  [
+    "projects/universal-job-tracker/index.html",
+    {
+      title: "Universal Job Tracker — Work in progress | Rahul Yadav",
+      heading: "Universal Job Tracker",
+      canonical: "https://rahuly.in/projects/universal-job-tracker",
+      indexable: false,
     },
   ],
 ]);
@@ -898,7 +972,15 @@ const generatedRouteData = generatedFiles
   .filter((file) => normalizedExtension(file) === ".data")
   .map(relativeGeneratedPath)
   .sort();
-const expectedRouteData = ["_.data", "projects.data", "writings.data"];
+const expectedRouteData = [
+  "_.data",
+  "projects.data",
+  "projects/portfolio-tracker.data",
+  "projects/tourney.data",
+  "projects/universal-job-tracker.data",
+  "projects/url-shortener.data",
+  "writings.data",
+];
 
 if (JSON.stringify(generatedHtml) !== JSON.stringify(expectedHtml)) {
   throw new Error(
@@ -922,9 +1004,13 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  if (!html.includes(`>${expected.heading}</h1>`)) {
+  const levelOneHeadings = readHeadingTexts(html, 1);
+  if (
+    levelOneHeadings.length !== 1 ||
+    levelOneHeadings[0] !== expected.heading
+  ) {
     throw new Error(
-      `Expected the ${expected.heading} heading in ${relativePath}.`,
+      `Expected one h1 of ${expected.heading} in ${relativePath}; received ${levelOneHeadings.join(", ") || "none"}.`,
     );
   }
 
@@ -935,9 +1021,16 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  if (hasMetaToken(html, "robots", "noindex")) {
+  const hasNoindex = hasMetaToken(html, "robots", "noindex");
+  const hasFollow = hasMetaToken(html, "robots", "follow");
+  if (expected.indexable && hasNoindex) {
     throw new Error(
       `Expected ${relativePath} to remain indexable, but found a robots directive containing noindex.`,
+    );
+  }
+  if (!expected.indexable && (!hasNoindex || !hasFollow)) {
+    throw new Error(
+      `Expected ${relativePath} to contain the noindex,follow robots directive.`,
     );
   }
 
@@ -957,10 +1050,18 @@ for (const [relativePath, expected] of expectedDocuments) {
 
 const homeHtml = await requireNonEmptyFile("index.html");
 const normalizedHomeHtml = homeHtml.replace(/<!-- -->/g, "");
+const homeLevelTwoHeadings = readHeadingTexts(homeHtml, 2);
+for (const heading of [
+  "Experience",
+  "What I’m building next",
+  "Skills",
+  "Education",
+]) {
+  if (!homeLevelTwoHeadings.includes(heading)) {
+    throw new Error(`Expected the ${heading} section heading in index.html.`);
+  }
+}
 for (const expectedMarkup of [
-  ">Experience</h2>",
-  ">Skills</h2>",
-  ">Education</h2>",
   "<details>",
   "Show 3 more contributions",
   "Customer engagement:",
@@ -1229,6 +1330,7 @@ const serverOnlyMarkers = [
   "validate-content.server",
   "site-content.server",
   "professional-content.server",
+  "projects-content.server",
   "claim-sopra-modernization",
   "experience-sopra-steria",
 ];
@@ -1269,6 +1371,22 @@ const decodedRouteData = new Map([
       "routes/projects",
     ),
   ],
+  ...[
+    "portfolio-tracker",
+    "tourney",
+    "universal-job-tracker",
+    "url-shortener",
+  ].map((slug) => {
+    const relativePath = `projects/${slug}.data`;
+    return [
+      relativePath,
+      decodeRouteLoaderData(
+        routeData.get(relativePath) ?? "",
+        relativePath,
+        "routes/project-detail",
+      ),
+    ];
+  }),
   [
     "writings.data",
     decodeRouteLoaderData(
@@ -1299,7 +1417,7 @@ const expectedSeoByRouteData = new Map([
     {
       canonicalPath: "/projects",
       description:
-        "Approved project case studies will be added in a later portfolio milestone.",
+        "A working roadmap of useful products Rahul Yadav plans to build, with four projects currently marked work in progress.",
       title: "Projects | Rahul Yadav",
     },
   ],
@@ -1313,6 +1431,215 @@ const expectedSeoByRouteData = new Map([
     },
   ],
 ]);
+const expectedProjects = [
+  {
+    slug: "tourney",
+    name: "Tourney",
+    summary:
+      "A flexible tournament manager for creating competitions, recording scores, calculating results, and announcing winners across different games and variants.",
+    plannedDestination: "tourney.rahuly.in",
+    projectMark: "tourney",
+    homeStack: ["FastAPI", "React", "PostgreSQL", "Redis"],
+    plannedStack: [
+      "Python",
+      "FastAPI",
+      "React",
+      "PostgreSQL",
+      "Redis",
+      "WebSockets",
+      "Docker",
+    ],
+    plannedCapabilities: [
+      "Create a tournament for any game and variant.",
+      "Configure competitors, matches, or rounds according to the chosen format.",
+      "Record scores as the tournament progresses.",
+      "Calculate standings and final results.",
+      "Announce and display the winner.",
+      "Keep active tournament views updated for organizers and participants.",
+    ],
+    stackRationale:
+      "FastAPI will provide the tournament APIs, React will power the organizer and participant views, PostgreSQL will store tournament data, and Redis with WebSockets will support responsive score and result updates.",
+    laterPossibilities: [],
+    disclaimer: null,
+    plannedShortLinkPattern: null,
+    description:
+      "A flexible tournament manager for creating competitions, recording scores, calculating results, and announcing winners across different games and variants.",
+  },
+  {
+    slug: "url-shortener",
+    name: "URL Shortener",
+    summary:
+      "A practical service for creating, managing, and safely redirecting short links. I plan to build it to revisit and deepen technologies in my stack—and I’d love for you to use it when it is ready. ❤️",
+    plannedDestination: "go.rahuly.in",
+    projectMark: "url-shortener",
+    homeStack: ["FastAPI", "React", "PostgreSQL", "Redis"],
+    plannedStack: [
+      "Python",
+      "FastAPI",
+      "React",
+      "PostgreSQL",
+      "Redis",
+      "JWT",
+      "Docker",
+    ],
+    plannedCapabilities: [
+      "Create and manage shortened URLs.",
+      "Redirect go.rahuly.in/{id} to its target URL.",
+      "Validate destination URLs.",
+      "Apply per-user and per-client rate limits.",
+      "Cache frequently requested redirects.",
+      "Provide a shared authentication foundation intended for Rahul’s applications.",
+      "Use the project to revisit and strengthen selected technologies already represented in the portfolio.",
+    ],
+    stackRationale:
+      "FastAPI will handle link management and redirect APIs, PostgreSQL will store links and ownership data, Redis will support redirect caching and rate limiting, and React will provide the authenticated management interface.",
+    laterPossibilities: [],
+    disclaimer: null,
+    plannedShortLinkPattern: "go.rahuly.in/{id}",
+    description:
+      "A practical planned service for creating, managing, and safely redirecting short links while revisiting technologies in Rahul Yadav’s stack.",
+  },
+  {
+    slug: "portfolio-tracker",
+    name: "Portfolio Tracker",
+    summary:
+      "A long-term investment journal and portfolio tracker for recording investment decisions, strategies, exit plans, alerts, prices, and performance.",
+    plannedDestination: "invest.rahuly.in",
+    projectMark: "portfolio-tracker",
+    homeStack: ["Django REST Framework", "React", "PostgreSQL", "RabbitMQ"],
+    plannedStack: [
+      "Python",
+      "Django",
+      "Django REST Framework",
+      "React",
+      "PostgreSQL",
+      "Redis",
+      "Celery",
+      "RabbitMQ",
+      "Docker",
+    ],
+    plannedCapabilities: [
+      "Record the reasoning behind an investment decision.",
+      "Store the strategy and any decided exit conditions for each stock.",
+      "Configure price or decision alerts.",
+      "Retrieve current stock prices from an appropriate provider.",
+      "Show invested value, current value, return percentage, and XIRR at stock level.",
+      "Show the same meaningful indicators at overall portfolio level.",
+      "Preserve a history of decisions instead of showing only the latest value.",
+    ],
+    stackRationale:
+      "Django and Django REST Framework suit the project’s structured financial domain and administrative workflows, PostgreSQL will store portfolio history, and Celery with RabbitMQ and Redis will support planned price refreshes, imports, and alerts.",
+    laterPossibilities: [
+      "Import spreadsheets exported by investment applications.",
+      "Validate and map imported spreadsheet columns.",
+      "Consider authorized portfolio-import APIs where suitable providers make this technically and legally possible.",
+    ],
+    disclaimer:
+      "Planned as a personal decision-tracking tool, not investment advice.",
+    plannedShortLinkPattern: null,
+    description:
+      "A planned long-term investment journal and portfolio tracker for recording decisions, strategies, exit plans, alerts, prices, and performance.",
+  },
+  {
+    slug: "universal-job-tracker",
+    name: "Universal Job Tracker",
+    summary:
+      "A compact job-application tracker with customizable columns and typed fields that can adapt to different job-search workflows.",
+    plannedDestination: "jobs.rahuly.in",
+    projectMark: "universal-job-tracker",
+    homeStack: ["FastAPI", "Vue.js", "PostgreSQL", "Pydantic"],
+    plannedStack: [
+      "Python",
+      "FastAPI",
+      "Vue.js",
+      "PostgreSQL",
+      "SQLAlchemy",
+      "Pydantic",
+      "Docker",
+    ],
+    plannedCapabilities: [
+      "Track job applications and their relevant details.",
+      "Add custom columns.",
+      "Delete default columns.",
+      "Configure column types including email, text, number, checkbox, and radio.",
+      "Validate values according to their configured column type.",
+      "Keep the primary workflow within one or two main screens.",
+    ],
+    stackRationale:
+      "FastAPI, SQLAlchemy, and Pydantic will support typed configurable fields and validation, PostgreSQL will store flexible job records, and Vue.js will provide a compact editable tracking interface.",
+    laterPossibilities: [],
+    disclaimer: null,
+    plannedShortLinkPattern: null,
+    description:
+      "A planned compact job-application tracker with customizable columns and typed fields for different job-search workflows.",
+  },
+];
+
+function assertProjectCardContract(
+  value,
+  expected,
+  plannedStack,
+  relativePath,
+  label,
+) {
+  assertExactRecordFields(
+    value,
+    [
+      "name",
+      "plannedDestination",
+      "plannedStack",
+      "projectMark",
+      "slug",
+      "status",
+      "summary",
+    ],
+    relativePath,
+    label,
+  );
+  if (
+    value["name"] !== expected.name ||
+    value["plannedDestination"] !== expected.plannedDestination ||
+    JSON.stringify(value["plannedStack"]) !== JSON.stringify(plannedStack) ||
+    value["projectMark"] !== expected.projectMark ||
+    value["slug"] !== expected.slug ||
+    value["status"] !== "wip" ||
+    value["summary"] !== expected.summary
+  ) {
+    throw new Error(`Unexpected ${label} projection in ${relativePath}.`);
+  }
+}
+
+const projectHtmlPaths = [
+  "index.html",
+  "projects/index.html",
+  ...expectedProjects.map((project) => `projects/${project.slug}/index.html`),
+];
+for (const relativePath of projectHtmlPaths) {
+  const html = await requireNonEmptyFile(relativePath);
+  const anchors = readAnchors(html);
+  for (const project of expectedProjects) {
+    const destinationAnchor = anchors.find(
+      (anchor) =>
+        anchor.href?.includes(project.plannedDestination) ||
+        anchor.text === project.plannedDestination,
+    );
+    if (destinationAnchor !== undefined) {
+      throw new Error(
+        `Found planned destination ${project.plannedDestination} exposed as an anchor in ${relativePath}.`,
+      );
+    }
+  }
+
+  const forbiddenAction = anchors.find((anchor) =>
+    /^(?:Live|Demo|Source|Visit|Open app)$/i.test(anchor.text),
+  );
+  if (forbiddenAction !== undefined) {
+    throw new Error(
+      `Found an unavailable project action ${forbiddenAction.text} in ${relativePath}.`,
+    );
+  }
+}
+
 const homeData = decodedRouteData.get("_.data") ?? {};
 const expectedHomeFields = [
   "canonicalOrigin",
@@ -1323,6 +1650,7 @@ const expectedHomeFields = [
   "identity",
   "location",
   "portrait",
+  "projects",
   "resume",
   "seo",
   "skillGroups",
@@ -1457,7 +1785,7 @@ const expectedExperiences = [
     logoPath: "/assets/organizations/sopra-steria.jpeg",
     roleTitle: "Senior Software Engineer",
     dateRange: "Aug 2025–Present",
-    location: "Bengaluru, Karnataka, India",
+    location: "Bengaluru, India",
     contributionCount: 6,
     engagement: "Airbus",
   },
@@ -1467,7 +1795,7 @@ const expectedExperiences = [
     logoPath: "/assets/organizations/gainfront.jpeg",
     roleTitle: "Software Developer",
     dateRange: "Jun 2023–Aug 2025",
-    location: "Bengaluru, Karnataka, India",
+    location: "Bengaluru, India",
     contributionCount: 5,
   },
   {
@@ -1476,7 +1804,7 @@ const expectedExperiences = [
     logoPath: "/assets/organizations/marsdevs.jpeg",
     roleTitle: "Software Engineer",
     dateRange: "Nov 2020–Jun 2023",
-    location: "Pune, Maharashtra, India",
+    location: "Pune, India",
     contributionCount: 3,
   },
 ];
@@ -1601,6 +1929,27 @@ for (const [index, expected] of expectedExperiences.entries()) {
       );
     }
   }
+}
+if (/Karnataka|Maharashtra/.test(JSON.stringify(homeData["experiences"]))) {
+  throw new Error(
+    "Found a removed state name in public Experience route data.",
+  );
+}
+
+if (
+  !Array.isArray(homeData["projects"]) ||
+  homeData["projects"].length !== expectedProjects.length
+) {
+  throw new Error("Expected four compact project cards in _.data.");
+}
+for (const [index, expected] of expectedProjects.entries()) {
+  assertProjectCardContract(
+    homeData["projects"][index],
+    expected,
+    expected.homeStack,
+    "_.data",
+    `home project ${String(index)}`,
+  );
 }
 
 const expectedSkillGroups = [
@@ -1752,7 +2101,6 @@ const forbiddenHomeFields = new Set([
   "featuredProjects",
   "recentWritings",
   "resumeAsset",
-  "projects",
   "writings",
   "resumeAssets",
   "images",
@@ -1801,35 +2149,158 @@ for (const [relativePath, rootData] of decodedRootData) {
   );
 }
 
-for (const relativePath of ["projects.data", "writings.data"]) {
+const projectsData = decodedRouteData.get("projects.data");
+assertExactRecordFields(
+  projectsData,
+  ["canonicalOrigin", "items", "seo"],
+  "projects.data",
+  "projects collection loader",
+);
+if (projectsData["canonicalOrigin"] !== "https://rahuly.in") {
+  throw new Error("Unexpected projects canonical origin in projects.data.");
+}
+assertSeoContract(
+  projectsData["seo"],
+  expectedSeoByRouteData.get("projects.data"),
+  "projects.data",
+);
+if (
+  !Array.isArray(projectsData["items"]) ||
+  projectsData["items"].length !== expectedProjects.length
+) {
+  throw new Error("Expected four project cards in projects.data.");
+}
+for (const [index, expected] of expectedProjects.entries()) {
+  assertProjectCardContract(
+    projectsData["items"][index],
+    expected,
+    expected.plannedStack,
+    "projects.data",
+    `project index item ${String(index)}`,
+  );
+}
+
+const writingsData = decodedRouteData.get("writings.data");
+assertExactRecordFields(
+  writingsData,
+  ["canonicalOrigin", "items", "seo"],
+  "writings.data",
+  "writings collection loader",
+);
+if (writingsData["canonicalOrigin"] !== "https://rahuly.in") {
+  throw new Error("Unexpected writings canonical origin in writings.data.");
+}
+assertSeoContract(
+  writingsData["seo"],
+  expectedSeoByRouteData.get("writings.data"),
+  "writings.data",
+);
+if (
+  !Array.isArray(writingsData["items"]) ||
+  writingsData["items"].length !== 0
+) {
+  throw new Error("Expected the writing collection to remain empty.");
+}
+
+for (const [index, expected] of expectedProjects.entries()) {
+  const relativePath = `projects/${expected.slug}.data`;
   const loaderData = decodedRouteData.get(relativePath);
   assertExactRecordFields(
     loaderData,
-    ["canonicalOrigin", "items", "seo"],
+    ["data", "kind"],
     relativePath,
-    "collection loader",
+    "project detail lookup",
   );
-
-  if (loaderData["canonicalOrigin"] !== "https://rahuly.in") {
-    throw new Error(
-      `Expected canonicalOrigin in ${relativePath} to equal "https://rahuly.in".`,
-    );
+  if (loaderData["kind"] !== "found") {
+    throw new Error(`Expected a found project lookup in ${relativePath}.`);
   }
 
+  const detailData = loaderData["data"];
+  const detailFields = ["canonicalOrigin", "project"];
+  if (index > 0) detailFields.push("previousProject");
+  if (index < expectedProjects.length - 1) detailFields.push("nextProject");
+  assertExactRecordFields(
+    detailData,
+    detailFields,
+    relativePath,
+    "project detail data",
+  );
+  if (detailData["canonicalOrigin"] !== "https://rahuly.in") {
+    throw new Error(`Unexpected canonical origin in ${relativePath}.`);
+  }
+
+  const projectFields = [
+    "laterPossibilities",
+    "name",
+    "plannedCapabilities",
+    "plannedDestination",
+    "plannedStack",
+    "projectMark",
+    "seo",
+    "slug",
+    "stackRationale",
+    "status",
+    "summary",
+  ];
+  if (expected.plannedShortLinkPattern !== null) {
+    projectFields.push("plannedShortLinkPattern");
+  }
+  if (expected.disclaimer !== null) projectFields.push("disclaimer");
+  const project = detailData["project"];
+  assertExactRecordFields(
+    project,
+    projectFields,
+    relativePath,
+    "project detail",
+  );
+  if (
+    project["slug"] !== expected.slug ||
+    project["name"] !== expected.name ||
+    project["summary"] !== expected.summary ||
+    project["status"] !== "wip" ||
+    project["plannedDestination"] !== expected.plannedDestination ||
+    project["plannedShortLinkPattern"] !==
+      (expected.plannedShortLinkPattern ?? undefined) ||
+    JSON.stringify(project["plannedCapabilities"]) !==
+      JSON.stringify(expected.plannedCapabilities) ||
+    JSON.stringify(project["plannedStack"]) !==
+      JSON.stringify(expected.plannedStack) ||
+    project["stackRationale"] !== expected.stackRationale ||
+    JSON.stringify(project["laterPossibilities"]) !==
+      JSON.stringify(expected.laterPossibilities) ||
+    project["disclaimer"] !== (expected.disclaimer ?? undefined) ||
+    project["projectMark"] !== expected.projectMark
+  ) {
+    throw new Error(`Unexpected project detail projection in ${relativePath}.`);
+  }
   assertSeoContract(
-    loaderData["seo"],
-    expectedSeoByRouteData.get(relativePath),
+    project["seo"],
+    {
+      canonicalPath: `/projects/${expected.slug}`,
+      description: expected.description,
+      title: `${expected.name} — Work in progress | Rahul Yadav`,
+    },
     relativePath,
   );
 
-  if (!Array.isArray(loaderData["items"])) {
-    throw new Error(`Expected items in ${relativePath} to be an array.`);
-  }
-
-  if (loaderData["items"].length !== 0) {
-    throw new Error(
-      `Expected an empty published collection in ${relativePath}.`,
+  for (const [direction, siblingIndex] of [
+    ["previousProject", index - 1],
+    ["nextProject", index + 1],
+  ]) {
+    const sibling = expectedProjects[siblingIndex];
+    if (sibling === undefined) continue;
+    assertExactRecordFields(
+      detailData[direction],
+      ["name", "path"],
+      relativePath,
+      direction,
     );
+    if (
+      detailData[direction]["name"] !== sibling.name ||
+      detailData[direction]["path"] !== `/projects/${sibling.slug}`
+    ) {
+      throw new Error(`Unexpected ${direction} in ${relativePath}.`);
+    }
   }
 }
 

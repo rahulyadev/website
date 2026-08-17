@@ -182,16 +182,13 @@ describe("StaticContentRepository", () => {
       throw new Error("Missing project fixture.");
     setAtPath(earlierProject, ["id"], "project-earlier");
     setAtPath(earlierProject, ["slug"], "earlier-project");
-    setAtPath(earlierProject, ["title"], "Earlier project");
+    setAtPath(earlierProject, ["name"], "Earlier project");
     setAtPath(earlierProject, ["order"], 10);
-    setAtPath(earlierProject, ["featuredOrder"], 10);
-    setAtPath(earlierProject, ["decisions", 0, "id"], "decision-earlier");
-    setAtPath(earlierProject, ["outcomes", 0, "id"], "outcome-earlier");
-    setAtPath(earlierProject, ["links", 0, "id"], "link-earlier-project");
+    setAtPath(earlierProject, ["plannedDestination"], "earlier.example.test");
     setAtPath(
       earlierProject,
-      ["links", 0, "href"],
-      "/projects/earlier-project",
+      ["plannedCapabilities", 0, "id"],
+      "capability-earlier",
     );
     setAtPath(
       earlierProject,

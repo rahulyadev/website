@@ -7,6 +7,7 @@ import { useSiteShell } from "../site-shell/site-shell";
 import { ContactActions } from "./contact-actions";
 import { EducationSection } from "./education-section";
 import { ExperienceSection } from "./experience-section";
+import { ProjectsSection } from "./projects-section";
 import { SkillsSection } from "./skills-section";
 
 type CredibilityCard = HomePageData["credibilityCards"][number];
@@ -142,6 +143,8 @@ export function HomePage({ data }: { data: HomePageData }) {
       </Section>
 
       <ExperienceSection experiences={data.experiences} />
+
+      <ProjectsSection projects={data.projects} />
 
       <SkillsSection skillGroups={data.skillGroups} />
 
