@@ -73,6 +73,11 @@ describe("ContactActions", () => {
     expect(
       screen.queryByRole("button", { name: /show phone/i }),
     ).not.toBeInTheDocument();
+    expect(
+      [...container.querySelectorAll(".contact-actions__row > dt")].map(
+        (label) => label.textContent,
+      ),
+    ).toEqual(["Email", "Phone", "Profiles", "Location"]);
 
     for (const label of ["GitHub", "LinkedIn"]) {
       const link = screen.getByRole("link", {
@@ -80,18 +85,27 @@ describe("ContactActions", () => {
       });
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noopener noreferrer");
-      expect(within(link).getByText(label)).toHaveClass(
-        "contact-actions__social-label",
+      expect(within(link).getByRole("tooltip", { name: label })).toHaveClass(
+        "contact-actions__social-tooltip",
       );
+      expect(link).toHaveAccessibleDescription(label);
+      expect(link.querySelector(".contact-actions__social-label")).toBeNull();
       expect(link.querySelector("svg")).not.toBeNull();
       expect(
         link.querySelector(".contact-actions__social-icon"),
       ).not.toBeNull();
     }
 
+    const resumeLink = screen.getByRole("link", { name: "Download resume" });
+    expect(resumeLink).toHaveAttribute("download", "example-resume.pdf");
+    const profileRow = container.querySelector(".contact-actions__profile-row");
+    expect(profileRow?.firstElementChild).toBe(resumeLink);
     expect(
-      screen.getByRole("link", { name: "Download resume" }),
-    ).toHaveAttribute("download", "example-resume.pdf");
+      [
+        ...(profileRow?.querySelectorAll(".contact-actions__social-link") ??
+          []),
+      ].map((link) => link.getAttribute("aria-label")),
+    ).toEqual(["GitHub (opens in a new tab)", "LinkedIn (opens in a new tab)"]);
     expect(container.querySelector("form")).toBeNull();
 
     const copyButton = screen.getByRole("button", {

@@ -5,6 +5,51 @@ import { ResponsivePicture } from "../responsive-picture";
 import { LinkButton, Section, SectionHeading } from "../ui";
 import { useSiteShell } from "../site-shell/site-shell";
 import { ContactActions } from "./contact-actions";
+import { EducationSection } from "./education-section";
+import { ExperienceSection } from "./experience-section";
+import { SkillsSection } from "./skills-section";
+
+type CredibilityCard = HomePageData["credibilityCards"][number];
+
+export function CredibilityList({
+  cards,
+}: {
+  readonly cards: readonly CredibilityCard[];
+}) {
+  return (
+    <ol className="credibility-list">
+      {cards.map((card, index) => (
+        <li
+          className={
+            card.outcomes === undefined
+              ? "credibility-list__item"
+              : "credibility-list__item credibility-list__item--outcomes"
+          }
+          key={card.title}
+        >
+          <span aria-hidden="true" className="credibility-list__index">
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <div className="credibility-list__copy">
+            <h3 className="credibility-list__title">{card.title}</h3>
+            {card.body === undefined ? null : (
+              <p className="credibility-list__detail home-prose">{card.body}</p>
+            )}
+            {card.outcomes === undefined ? null : (
+              <ul className="credibility-list__outcomes">
+                {card.outcomes.map((outcome) => (
+                  <li className="home-prose" key={outcome.label}>
+                    <strong>{outcome.label}:</strong> {outcome.detail}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export function HomePage({ data }: { data: HomePageData }) {
   const heroRef = useRef<HTMLElement>(null);
@@ -43,13 +88,13 @@ export function HomePage({ data }: { data: HomePageData }) {
             image={data.portrait}
             imageClassName="home-hero__portrait"
             loading="eager"
-            sizes="(min-width: 64rem) 38vw, (min-width: 48rem) 42vw, 12rem"
+            sizes="clamp(9rem, 22vw, 18rem)"
           />
         </div>
         <div className="home-hero__copy">
           <h1>{data.identity.displayName}</h1>
           <p className="home-hero__eyebrow">{data.identity.roleLabel}</p>
-          <p className="home-hero__positioning">
+          <p className="home-hero__positioning home-prose">
             {data.identity.professionalPositioning}
           </p>
           <div className="home-hero__actions">
@@ -69,56 +114,58 @@ export function HomePage({ data }: { data: HomePageData }) {
       </section>
 
       <Section className="home-about" id="about" spacing="spacious">
-        <SectionHeading
-          eyebrow="About"
-          title="Backend depth, full-stack delivery"
-        />
-        <div className="home-about__copy">
-          <p>{data.identity.introduction}</p>
-          <p>{data.identity.opportunityStatement}</p>
+        <div className="home-section__inner">
+          <SectionHeading
+            eyebrow="About"
+            title="Backend depth, full-stack delivery"
+          />
+          <div className="home-about__copy">
+            <p className="home-prose">{data.identity.introduction}</p>
+            <p className="home-prose">{data.identity.opportunityStatement}</p>
+          </div>
         </div>
       </Section>
 
       <Section className="home-credibility" id="credibility">
-        <SectionHeading
-          description={
-            <p>Selected, validated indicators of engineering impact.</p>
-          }
-          eyebrow="Credibility"
-          title="Evidence over adjectives"
-        />
-        <ol className="credibility-list">
-          {data.credibilityHighlights.map((highlight, index) => (
-            <li key={highlight.lead}>
-              <span aria-hidden="true" className="credibility-list__index">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <div className="credibility-list__copy">
-                <p className="credibility-list__lead">{highlight.lead}</p>
-                <p className="credibility-list__detail">{highlight.detail}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <div className="home-section__inner">
+          <SectionHeading
+            description={
+              <p className="home-prose">
+                Selected, validated indicators of engineering impact.
+              </p>
+            }
+            eyebrow="Credibility"
+            title="Evidence over adjectives"
+          />
+          <CredibilityList cards={data.credibilityCards} />
+        </div>
       </Section>
 
+      <ExperienceSection experiences={data.experiences} />
+
+      <SkillsSection skillGroups={data.skillGroups} />
+
+      <EducationSection education={data.education} />
+
       <Section className="home-contact" id="contact" spacing="spacious">
-        <SectionHeading
-          description={
-            <p>
-              For senior backend, senior software, and backend-heavy full-stack
-              opportunities.
-            </p>
-          }
-          eyebrow="Contact"
-          title="Start a useful conversation"
-        />
-        <ContactActions
-          contacts={data.contacts}
-          location={data.location}
-          resume={data.resume}
-          socialLinks={data.socialLinks}
-        />
+        <div className="home-section__inner">
+          <SectionHeading
+            description={
+              <p className="home-prose">
+                For senior backend, senior software, and backend-heavy
+                full-stack opportunities.
+              </p>
+            }
+            eyebrow="Contact"
+            title="Start a useful conversation"
+          />
+          <ContactActions
+            contacts={data.contacts}
+            location={data.location}
+            resume={data.resume}
+            socialLinks={data.socialLinks}
+          />
+        </div>
       </Section>
     </div>
   );

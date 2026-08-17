@@ -101,6 +101,29 @@ describe("StaticContentRepository", () => {
       "TypeScript",
       "Testing",
     ]);
+    expect(overview.skillGroups[0]?.category).toBe("languages");
+    expect(overview.experiences[0]).toMatchObject({
+      organization: "Example Company",
+      featured: true,
+      logo: {
+        path: "/assets/organizations/example-employer.jpeg",
+        altText: "",
+      },
+      roles: [
+        {
+          title: "Software Engineer",
+          location: "London, United Kingdom",
+          technologies: [{ id: "skill-typescript", name: "TypeScript" }],
+        },
+      ],
+    });
+    expect(overview.education[0]).toMatchObject({
+      institution: "Example Institute",
+      logo: {
+        path: "/assets/organizations/example-education.jpeg",
+        altText: "",
+      },
+    });
     expect(projects.items.map((project) => project.slug)).toEqual([
       "published-project",
     ]);

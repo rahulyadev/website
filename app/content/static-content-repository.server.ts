@@ -2,6 +2,8 @@ import type {
   PortfolioOverview,
   PublishedProject,
   PublishedWriting,
+  ResolvedEducation,
+  ResolvedExperience,
   ResolvedProfileImage,
   ResolvedSkillGroup,
   SiteIdentity,
@@ -60,6 +62,7 @@ function resolveSkillGroups(snapshot: ValidatedContentSnapshot) {
   return sortByOrder(snapshot.professional.skillGroups).map<ResolvedSkillGroup>(
     (group) => ({
       id: group.id,
+      category: group.category,
       name: group.name,
       order: group.order,
       skills: sortByOrder(group.skills).map((reference) => {
@@ -75,6 +78,95 @@ function resolveSkillGroups(snapshot: ValidatedContentSnapshot) {
       }),
     }),
   );
+}
+
+function resolveExperiences(
+  snapshot: ValidatedContentSnapshot,
+): readonly ResolvedExperience[] {
+  const images = new Map(
+    snapshot.site.images.map((image) => [image.id, image]),
+  );
+  const skills = new Map<string, Skill>(
+    snapshot.professional.skills.map((skill) => [skill.id, skill]),
+  );
+
+  return snapshot.professional.experiences
+    .map<ResolvedExperience>((experience) => {
+      const logo = images.get(experience.logoAssetId);
+      if (logo?.publicationStatus !== "published") {
+        throw new Error(
+          `Validated experience ${experience.id} lost published logo ${experience.logoAssetId}.`,
+        );
+      }
+
+      return {
+        id: experience.id,
+        organization: experience.organization,
+        featured: experience.featured,
+        order: experience.order,
+        logo,
+        roles: [...experience.roles]
+          .sort(
+            (left, right) =>
+              right.dates.start.localeCompare(left.dates.start) ||
+              left.order - right.order,
+          )
+          .map((role) => ({
+            id: role.id,
+            title: role.title,
+            dates: role.dates,
+            location: role.location,
+            ...(role.engagement === undefined
+              ? {}
+              : { engagement: role.engagement }),
+            summary: role.summary,
+            responsibilities: sortByOrder(role.responsibilities),
+            technologies: role.technologyIds.map((technologyId) => {
+              const skill = skills.get(technologyId);
+              if (skill === undefined) {
+                throw new Error(
+                  `Validated experience role ${role.id} lost technology ${technologyId}.`,
+                );
+              }
+              return skill;
+            }),
+            order: role.order,
+          })),
+      };
+    })
+    .sort((left, right) => {
+      const leftStart = left.roles[0]?.dates.start ?? "";
+      const rightStart = right.roles[0]?.dates.start ?? "";
+      return rightStart.localeCompare(leftStart) || left.order - right.order;
+    });
+}
+
+function resolveEducation(
+  snapshot: ValidatedContentSnapshot,
+): readonly ResolvedEducation[] {
+  const images = new Map(
+    snapshot.site.images.map((image) => [image.id, image]),
+  );
+
+  return sortByOrder(snapshot.professional.education).map((record) => {
+    const logo = images.get(record.logoAssetId);
+    if (logo?.publicationStatus !== "published") {
+      throw new Error(
+        `Validated education ${record.id} lost published logo ${record.logoAssetId}.`,
+      );
+    }
+
+    return {
+      id: record.id,
+      institution: record.institution,
+      credential: record.credential,
+      fieldOfStudy: record.fieldOfStudy,
+      dates: record.dates,
+      ...(record.score === undefined ? {} : { score: record.score }),
+      order: record.order,
+      logo,
+    };
+  });
 }
 
 function resolveProfileImage(
@@ -162,12 +254,12 @@ export class StaticContentRepository implements ContentRepository {
       canonicalOrigin: snapshot.site.seo.canonicalOrigin,
       contacts: sortByOrder(snapshot.site.contacts),
       socialLinks: sortByOrder(snapshot.site.socialLinks),
-      experiences: sortByOrder(snapshot.professional.experiences),
+      experiences: resolveExperiences(snapshot),
       credibilityHighlights: sortByOrder(
         snapshot.professional.credibilityHighlights,
       ),
       skillGroups: resolveSkillGroups(snapshot),
-      education: sortByOrder(snapshot.professional.education),
+      education: resolveEducation(snapshot),
       featuredProjects: publishedProjects
         .filter((project) => project.featuredOrder !== undefined)
         .sort(

@@ -66,10 +66,17 @@ export interface SocialLink {
   readonly order: number;
 }
 
+export interface CustomerEngagement {
+  readonly relationship: "customer";
+  readonly organization: string;
+}
+
 export interface ExperienceRole {
   readonly id: StableId;
   readonly title: string;
   readonly dates: DateRange;
+  readonly location: string;
+  readonly engagement?: CustomerEngagement | undefined;
   readonly summary: string;
   readonly responsibilities: readonly OrderedStatement[];
   readonly technologyIds: readonly StableId[];
@@ -79,6 +86,7 @@ export interface ExperienceRole {
 export interface Experience {
   readonly id: StableId;
   readonly organization: string;
+  readonly logoAssetId: StableId;
   readonly roles: readonly ExperienceRole[];
   readonly order: number;
   readonly featured: boolean;
@@ -102,8 +110,12 @@ export interface OrderedSkillReference {
   readonly order: number;
 }
 
+export type SkillGroupCategory =
+  "languages" | "backend" | "frontend" | "data" | "cloud" | "tooling";
+
 export interface SkillGroup {
   readonly id: StableId;
+  readonly category: SkillGroupCategory;
   readonly name: string;
   readonly skills: readonly OrderedSkillReference[];
   readonly order: number;
@@ -111,6 +123,7 @@ export interface SkillGroup {
 
 export interface ResolvedSkillGroup {
   readonly id: StableId;
+  readonly category: SkillGroupCategory;
   readonly name: string;
   readonly skills: readonly Skill[];
   readonly order: number;
@@ -119,11 +132,11 @@ export interface ResolvedSkillGroup {
 export interface Education {
   readonly id: StableId;
   readonly institution: string;
-  readonly affiliation: string;
   readonly credential: string;
   readonly fieldOfStudy: string;
   readonly dates: DateRange;
   readonly score?: string | undefined;
+  readonly logoAssetId: StableId;
   readonly order: number;
 }
 
@@ -246,6 +259,25 @@ export interface ResolvedProfileImage {
   readonly compact: readonly PublicImageAsset[];
 }
 
+export interface ResolvedExperienceRole extends Omit<
+  ExperienceRole,
+  "technologyIds"
+> {
+  readonly technologies: readonly Skill[];
+}
+
+export interface ResolvedExperience extends Omit<
+  Experience,
+  "logoAssetId" | "roles"
+> {
+  readonly logo: PublicImageAsset;
+  readonly roles: readonly ResolvedExperienceRole[];
+}
+
+export interface ResolvedEducation extends Omit<Education, "logoAssetId"> {
+  readonly logo: PublicImageAsset;
+}
+
 export interface SiteContentSource {
   readonly identity: SiteIdentitySource;
   readonly seo: SeoDefaults;
@@ -284,10 +316,10 @@ export interface PortfolioOverview {
   readonly canonicalOrigin: string;
   readonly contacts: readonly ContactLink[];
   readonly socialLinks: readonly SocialLink[];
-  readonly experiences: readonly Experience[];
+  readonly experiences: readonly ResolvedExperience[];
   readonly credibilityHighlights: readonly CredibilityHighlight[];
   readonly skillGroups: readonly ResolvedSkillGroup[];
-  readonly education: readonly Education[];
+  readonly education: readonly ResolvedEducation[];
   readonly featuredProjects: readonly PublishedProject[];
   readonly recentWritings: readonly PublishedWriting[];
   readonly resumeAsset?: PublicResumeAsset | undefined;

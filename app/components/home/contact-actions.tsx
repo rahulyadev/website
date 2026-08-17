@@ -39,6 +39,36 @@ function SocialIcon({ platform }: { platform: string }) {
   return platform === "linkedin" ? <LinkedInIcon /> : <GitHubIcon />;
 }
 
+function SocialAction({
+  link,
+}: {
+  readonly link: HomePageData["socialLinks"][number];
+}) {
+  const tooltipId = useId();
+
+  return (
+    <a
+      aria-describedby={tooltipId}
+      aria-label={`${link.label} (opens in a new tab)`}
+      className="contact-actions__social-link"
+      href={link.url}
+      rel="noopener noreferrer"
+      target="_blank"
+    >
+      <span aria-hidden="true" className="contact-actions__social-icon">
+        <SocialIcon platform={link.platform} />
+      </span>
+      <span
+        className="contact-actions__social-tooltip"
+        id={tooltipId}
+        role="tooltip"
+      >
+        {link.label}
+      </span>
+    </a>
+  );
+}
+
 export function ContactActions({
   contacts,
   location,
@@ -47,11 +77,20 @@ export function ContactActions({
 }: ContactActionsProps) {
   const email = contacts.find((contact) => contact.kind === "email");
   const phone = contacts.find((contact) => contact.kind === "phone");
+  const github = socialLinks.find((link) => link.platform === "github");
+  const linkedin = socialLinks.find((link) => link.platform === "linkedin");
   const copyTooltipId = useId();
   const [copyStatus, setCopyStatus] = useState("");
 
-  if (email === undefined || phone === undefined) {
-    throw new Error("Approved email and phone contacts are required.");
+  if (
+    email === undefined ||
+    phone === undefined ||
+    github === undefined ||
+    linkedin === undefined
+  ) {
+    throw new Error(
+      "Approved email, phone, GitHub, and LinkedIn contacts are required.",
+    );
   }
 
   const copyEmail = async () => {
@@ -67,7 +106,7 @@ export function ContactActions({
     <div className="contact-actions">
       <address className="contact-actions__details">
         <dl>
-          <div className="contact-actions__row">
+          <div className="contact-actions__row contact-actions__row--email">
             <dt>Email</dt>
             <dd className="contact-actions__email">
               <a href={email.href}>{email.label}</a>
@@ -92,59 +131,44 @@ export function ContactActions({
               </span>
             </dd>
           </div>
-          <div className="contact-actions__row">
+          <div className="contact-actions__row contact-actions__row--phone">
             <dt>Phone</dt>
             <dd>
               <a href={phone.href}>{phone.label}</a>
             </dd>
           </div>
-          <div className="contact-actions__row">
+          <div className="contact-actions__row contact-actions__row--profiles">
+            <dt>Profiles</dt>
+            <dd>
+              <div className="contact-actions__profile-row">
+                <LinkButton
+                  className="contact-actions__resume"
+                  download={resume.downloadName}
+                  href={resume.path}
+                  size="small"
+                  variant="secondary"
+                >
+                  Download resume
+                </LinkButton>
+                <ul
+                  aria-label="Professional links"
+                  className="contact-actions__socials"
+                >
+                  {[github, linkedin].map((link) => (
+                    <li key={link.platform}>
+                      <SocialAction link={link} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </dd>
+          </div>
+          <div className="contact-actions__row contact-actions__row--location">
             <dt>Location</dt>
             <dd>{location}</dd>
           </div>
         </dl>
       </address>
-
-      <div className="contact-actions__outbound">
-        <div>
-          <p className="contact-actions__label">Profiles</p>
-          <ul
-            aria-label="Professional links"
-            className="contact-actions__socials"
-          >
-            {socialLinks.map((link) => (
-              <li key={link.platform}>
-                <a
-                  aria-label={`${link.label} (opens in a new tab)`}
-                  className="contact-actions__social-link"
-                  href={link.url}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="contact-actions__social-icon"
-                  >
-                    <SocialIcon platform={link.platform} />
-                  </span>
-                  <span className="contact-actions__social-label">
-                    {link.label}
-                  </span>
-                  <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <LinkButton
-          download={resume.downloadName}
-          href={resume.path}
-          size="small"
-          variant="secondary"
-        >
-          Download resume
-        </LinkButton>
-      </div>
 
       <VisuallyHidden aria-live="polite" role="status">
         {copyStatus}

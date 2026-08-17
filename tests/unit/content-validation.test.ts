@@ -103,11 +103,101 @@ describe("content validation", () => {
       publicationStatus: "published",
       path: "/assets/resume/rahul-yadav-resume.pdf",
     });
-    expect(productionSnapshot.site.images).toHaveLength(15);
+    expect(productionSnapshot.site.images).toHaveLength(19);
     expect(productionSnapshot.site.profileImage?.mainAssetIds).toHaveLength(9);
     expect(productionSnapshot.site.profileImage?.compactAssetIds).toHaveLength(
       6,
     );
+  });
+
+  it("keeps the approved Milestone 6 professional inventory exact", async () => {
+    const productionSnapshot = await new LocalContentAdapter().load();
+    const experiences = productionSnapshot.professional.experiences;
+    const skillGroups = productionSnapshot.professional.skillGroups;
+    const groupedSkillIds = skillGroups.flatMap((group) =>
+      group.skills.map((reference) => reference.skillId),
+    );
+
+    expect(experiences.map((experience) => experience.organization)).toEqual([
+      "Sopra Steria",
+      "Gainfront",
+      "MarsDevs",
+    ]);
+    expect(experiences.map((experience) => experience.featured)).toEqual([
+      true,
+      true,
+      false,
+    ]);
+    expect(
+      experiences.map((experience) => experience.roles[0]?.location),
+    ).toEqual([
+      "Bengaluru, Karnataka, India",
+      "Bengaluru, Karnataka, India",
+      "Pune, Maharashtra, India",
+    ]);
+    expect(experiences[0]?.roles[0]?.engagement).toEqual({
+      relationship: "customer",
+      organization: "Airbus",
+    });
+    expect(experiences[1]?.roles[0]?.engagement).toBeUndefined();
+    expect(experiences[2]?.roles[0]?.engagement).toBeUndefined();
+
+    expect(skillGroups.map((group) => group.name)).toEqual([
+      "Languages",
+      "Backend and APIs",
+      "Frontend",
+      "Databases, caching, and asynchronous processing",
+      "Cloud and infrastructure",
+      "Testing, quality, and developer tooling",
+    ]);
+    expect(skillGroups.map((group) => group.skills.length)).toEqual([
+      3, 13, 6, 6, 10, 6,
+    ]);
+    expect(groupedSkillIds).toHaveLength(44);
+    expect(new Set(groupedSkillIds)).toHaveProperty("size", 44);
+    expect(
+      productionSnapshot.professional.skills.map((skill) => skill.name),
+    ).not.toContain("PHP");
+    expect(
+      productionSnapshot.professional.credibilityHighlights.map(
+        ({ id, supportingClaimIds }) => ({ id, supportingClaimIds }),
+      ),
+    ).toEqual([
+      {
+        id: "highlight-modernization-architecture",
+        supportingClaimIds: ["claim-sopra-modernization"],
+      },
+      {
+        id: "highlight-full-stack-delivery",
+        supportingClaimIds: ["claim-gainfront-greenfield"],
+      },
+      {
+        id: "highlight-delivery-leadership",
+        supportingClaimIds: ["claim-sopra-leadership"],
+      },
+      {
+        id: "highlight-api-payload",
+        supportingClaimIds: ["claim-sopra-payload-reduction"],
+      },
+      {
+        id: "highlight-test-coverage",
+        supportingClaimIds: ["claim-gainfront-testing"],
+      },
+    ]);
+
+    expect(productionSnapshot.professional.education).toEqual([
+      expect.objectContaining({
+        institution: "University of Mumbai",
+        credential: "Bachelor of Engineering",
+        fieldOfStudy: "Computer Engineering",
+        score: "CGPA 8.74/10",
+      }),
+    ]);
+    expect(
+      productionSnapshot.site.images.filter((image) =>
+        image.path.startsWith("/assets/organizations/"),
+      ),
+    ).toHaveLength(4);
   });
 
   it("keeps production role technologies and payload wording source-specific", async () => {
@@ -408,6 +498,75 @@ describe("content validation", () => {
     const nonPositive = createValidContentFixture();
     setAtPath(nonPositive, ["site", "contacts", 0, "order"], 0);
     expect(expectInvalid(nonPositive).message).toContain("positive");
+  });
+
+  it("rejects non-chronological employers and duplicate public skill placement", () => {
+    const chronology = createValidContentFixture();
+    const newerExperience = structuredClone(
+      chronology.professional.experiences[0],
+    );
+    if (newerExperience === undefined) {
+      throw new Error("Missing experience fixture.");
+    }
+    setAtPath(newerExperience, ["id"], "experience-newer");
+    setAtPath(newerExperience, ["organization"], "Newer Company");
+    setAtPath(newerExperience, ["order"], 20);
+    setAtPath(newerExperience, ["roles", 0, "id"], "role-newer");
+    setAtPath(newerExperience, ["roles", 0, "dates"], {
+      start: "2025-01",
+      end: { kind: "present" },
+    });
+    arrayAt(newerExperience, ["roles", 0, "responsibilities"]).forEach(
+      (responsibility, index) => {
+        setAtPath(responsibility, ["id"], `claim-newer-${String(index + 1)}`);
+      },
+    );
+    arrayAt(chronology, ["professional", "experiences"]).push(newerExperience);
+    expect(expectInvalid(chronology).message).toContain(
+      "reverse-chronological employer ordering",
+    );
+
+    const duplicateSkill = createValidContentFixture();
+    arrayAt(duplicateSkill, ["professional", "skillGroups"]).push({
+      id: "skill-group-duplicate",
+      category: "backend",
+      name: "Duplicate group",
+      skills: [{ skillId: "skill-typescript", order: 10 }],
+      order: 20,
+    });
+    expect(expectInvalid(duplicateSkill).message).toContain(
+      "appears in more than one public skill group",
+    );
+  });
+
+  it("rejects unknown, incorrectly purposed, and mismatched logo records", () => {
+    const unknownLogo = createValidContentFixture();
+    setAtPath(
+      unknownLogo,
+      ["professional", "experiences", 0, "logoAssetId"],
+      "image-unknown-logo",
+    );
+    expect(expectInvalid(unknownLogo).message).toContain(
+      "references an unknown logo asset",
+    );
+
+    const wrongPurpose = createValidContentFixture();
+    setAtPath(
+      wrongPurpose,
+      ["professional", "experiences", 0, "logoAssetId"],
+      "image-education-logo",
+    );
+    expect(expectInvalid(wrongPurpose).message).toContain(
+      "instead of experience-employer-logo",
+    );
+
+    const mismatchedManifest = structuredClone(
+      createValidAssetManifestFixture(),
+    );
+    setAtPath(mismatchedManifest, [2, "publicDerivativeWidth"], 201);
+    expect(
+      expectInvalid(createValidContentFixture(), mismatchedManifest).message,
+    ).toContain("governance does not match its public derivative");
   });
 
   it.each([
