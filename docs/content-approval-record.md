@@ -12,7 +12,7 @@ The following implementation gates remain deferred:
 
 - Downloadable résumé artifact: Milestone 5.
 - Profile photograph: after Milestone 4 design approval.
-- Markdown writings: Milestones 8 and 9.
+- Markdown writings: Milestone 8.
 
 ## Milestone 7 project-roadmap approval
 
@@ -21,3 +21,25 @@ Approval date: 2026-08-17
 Rahul approved the four public WIP project records for Tourney, URL Shortener, Portfolio Tracker, and Universal Job Tracker, including their editorial order, summaries, planned destinations, planned capabilities, planned stacks, stack rationales, later possibilities, and Portfolio Tracker disclaimer.
 
 Development has not started on these products. Their public presentation must distinguish intended direction from shipped functionality, keep planned destinations non-interactive while status is WIP, and avoid invented progress, outcomes, repositories, deployment claims, or delivery dates.
+
+## Milestone 8 writings approval
+
+Approval date: 2026-08-17
+
+Rahul approved a single combined Writings milestone covering the local Markdown engine, five initial articles, editorial index and detail presentation, metadata, `Article` JSON-LD, summary-only RSS, sitemap integration, static verification, accessibility, responsive behavior, print behavior, and visual review. The former Writings Engine and Initial Writings Content milestones are merged; there is no separate Milestone 9 content phase.
+
+The approved source architecture uses one local plain-Markdown file per stable slug, strict JSON front matter, `markdown-it` for build-time parsing, a safe serializable article tree, and the existing asynchronous `ContentRepository`. MDX, raw HTML, token-level syntax highlighting, runtime Markdown parsing, a CMS, a backend, and a future-content-API article are not approved.
+
+Rahul approved these five topics and authorized Codex to draft their complete initial articles for later editorial review:
+
+1. Phased Application Modernization Without a Big-Bang Cutover.
+2. Reducing API Payloads with Response Shaping and Compression.
+3. Replacing Mock-Heavy Tests with Database-Backed pytest Fixtures.
+4. Designing JWT Revocation and API Rate Limiting with Redis.
+5. Designing Asynchronous Document Processing with Retries, Backoff, and Dead-Letter Queues.
+
+The five initial records publish on consecutive Mondays in reverse-chronological editorial order: Reducing API Payloads with Response Shaping and Compression on 2026-07-20; Phased Application Modernization Without a Big-Bang Cutover on 2026-07-27; Designing JWT Revocation and API Rate Limiting with Redis on 2026-08-03; Replacing Mock-Heavy Tests with Database-Backed pytest Fixtures on 2026-08-10; and Designing Asynchronous Document Processing with Retries, Backoff, and Dead-Letter Queues on 2026-08-17. All retain `featured` set to `false`.
+
+Rahul approved one consistent date-above-title index layout at every viewport, full-parent-width Writings text, a restrained Writings-specific heading scale, subtly tinted light-mode code and table surfaces, and a sticky native `On this page` disclosure. The disclosure is collapsed initially, remains usable without JavaScript, and progressively enhances outside-click dismissal, Escape focus restoration, and focused anchor navigation.
+
+The authorization does not extend to customer or client names, internal application names, private repositories, internal URLs or identifiers, proprietary workflows, confidential infrastructure or topology, secrets, incidents, unapproved metrics, or claims of sole ownership. Examples must be original, generic, and identified as simplified or illustrative rather than represented as exact production implementations.

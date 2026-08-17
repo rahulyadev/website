@@ -2,6 +2,9 @@ import { z } from "zod";
 
 import { PROJECT_SLUGS } from "../domain/content";
 import type {
+  ArticleBlockNode,
+  ArticleContent,
+  ArticleInlineNode,
   ContactLink,
   CredibilityHighlight,
   DateRange,
@@ -15,7 +18,6 @@ import type {
   ProfileImageSource,
   ProfessionalContentSource,
   ProjectRecord,
-  ProvisionalArticleContent,
   PublicImageAsset,
   PublicResumeAsset,
   SeoDefaults,
@@ -425,28 +427,143 @@ const projectRecordSchema = z.discriminatedUnion("publicationStatus", [
   }),
 ]) satisfies z.ZodType<ProjectRecord>;
 
-const provisionalArticleContentSchema = z.object({
-  format: z.literal("provisional"),
-  text: nonemptyTextSchema,
-}) satisfies z.ZodType<ProvisionalArticleContent>;
+const articleInlineNodeSchema: z.ZodType<ArticleInlineNode> = z.lazy(() =>
+  z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("text"), value: z.string().min(1) }).strict(),
+    z
+      .object({ kind: z.literal("inline-code"), value: z.string().min(1) })
+      .strict(),
+    z.object({ kind: z.literal("line-break") }).strict(),
+    z
+      .object({
+        kind: z.literal("emphasis"),
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("strong"),
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("strikethrough"),
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("link"),
+        href: nonemptyTextSchema,
+        external: z.boolean(),
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+  ]),
+);
+
+const articleBlockNodeSchema: z.ZodType<ArticleBlockNode> = z.lazy(() =>
+  z.discriminatedUnion("kind", [
+    z
+      .object({
+        kind: z.literal("paragraph"),
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("heading"),
+        level: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+        id: slugSchema,
+        text: nonemptyTextSchema,
+        children: z.array(articleInlineNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("list"),
+        ordered: z.boolean(),
+        start: z.number().int().positive().optional(),
+        items: z
+          .array(z.array(articleBlockNodeSchema).min(1).readonly())
+          .min(1)
+          .readonly(),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("blockquote"),
+        children: z.array(articleBlockNodeSchema).min(1).readonly(),
+      })
+      .strict(),
+    z.object({ kind: z.literal("thematic-break") }).strict(),
+    z
+      .object({
+        kind: z.literal("code-block"),
+        language: slugSchema.optional(),
+        code: z.string().min(1),
+      })
+      .strict(),
+    z
+      .object({
+        kind: z.literal("table"),
+        label: nonemptyTextSchema,
+        headings: z
+          .array(z.array(articleInlineNodeSchema).min(1).readonly())
+          .min(1)
+          .readonly(),
+        rows: z
+          .array(
+            z
+              .array(z.array(articleInlineNodeSchema).min(1).readonly())
+              .min(1)
+              .readonly(),
+          )
+          .min(1)
+          .readonly(),
+      })
+      .strict(),
+  ]),
+);
+
+const articleContentSchema = z
+  .object({
+    format: z.literal("article-tree"),
+    blocks: z.array(articleBlockNodeSchema).min(1).readonly(),
+    tableOfContents: z
+      .array(
+        z
+          .object({
+            id: slugSchema,
+            level: z.union([z.literal(2), z.literal(3)]),
+            text: nonemptyTextSchema,
+          })
+          .strict(),
+      )
+      .readonly(),
+    wordCount: z.number().int().nonnegative(),
+    readingTimeMinutes: z.number().int().positive(),
+  })
+  .strict() satisfies z.ZodType<ArticleContent>;
 
 const writingMetadataSchema = z.object({
   id: stableIdSchema,
   slug: slugSchema,
   title: nonemptyTextSchema,
   publicationStatus: publicationStatusSchema,
-  summary: nonemptyTextSchema.optional(),
+  summary: nonemptyTextSchema,
   publishedOn: fullDateSchema.optional(),
   updatedOn: fullDateSchema.optional(),
-  tags: z.array(nonemptyTextSchema).readonly(),
-  featuredOrder: positiveOrderSchema.optional(),
+  tags: z.array(nonemptyTextSchema).min(1).max(5).readonly(),
+  featured: z.boolean(),
   coverImageAssetId: stableIdSchema.optional(),
   seo: seoMetadataSchema.optional(),
 }) satisfies z.ZodType<WritingMetadata>;
 
 const writingRecordSchema = z.object({
   metadata: writingMetadataSchema,
-  article: provisionalArticleContentSchema.optional(),
+  article: articleContentSchema.optional(),
 }) satisfies z.ZodType<WritingRecord>;
 
 const publicResumeAssetSchema = z.object({

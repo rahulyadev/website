@@ -35,7 +35,7 @@ export const siteContent = {
     writings: {
       title: "Writings | Rahul Yadav",
       description:
-        "Published technical writings will be added in a later portfolio milestone.",
+        "Engineering notes on backend systems, application modernization, testing, and the decisions behind maintainable software.",
       canonicalPath: "/writings",
     },
   },

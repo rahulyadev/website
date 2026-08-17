@@ -1,4 +1,6 @@
 import type {
+  ArticleBlockNode,
+  ArticleTableOfContentsItem,
   ProjectMarkId,
   ProjectStatus,
   SeoMetadata,
@@ -131,6 +133,56 @@ export interface ProjectDetailPageData {
 
 export type ProjectDetailPageLookup =
   | { readonly kind: "found"; readonly data: ProjectDetailPageData }
+  | {
+      readonly kind: "not-found";
+      readonly requestedSlug: string;
+    };
+
+export interface WritingIndexItemData {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly publishedOn: string;
+  readonly readingTimeMinutes: number;
+  readonly tags: readonly string[];
+}
+
+export interface WritingsPageData {
+  readonly canonicalOrigin: string;
+  readonly seo: SeoMetadata;
+  readonly items: readonly WritingIndexItemData[];
+}
+
+export interface WritingSiblingData {
+  readonly title: string;
+  readonly path: string;
+}
+
+export interface WritingDetailData {
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly publishedOn: string;
+  readonly updatedOn?: string | undefined;
+  readonly readingTimeMinutes: number;
+  readonly tags: readonly string[];
+  readonly seo: SeoMetadata;
+  readonly article: {
+    readonly blocks: readonly ArticleBlockNode[];
+    readonly tableOfContents: readonly ArticleTableOfContentsItem[];
+  };
+}
+
+export interface WritingDetailPageData {
+  readonly canonicalOrigin: string;
+  readonly writing: WritingDetailData;
+  readonly relatedWritings: readonly WritingSiblingData[];
+  readonly newerWriting?: WritingSiblingData | undefined;
+  readonly olderWriting?: WritingSiblingData | undefined;
+}
+
+export type WritingDetailPageLookup =
+  | { readonly kind: "found"; readonly data: WritingDetailPageData }
   | {
       readonly kind: "not-found";
       readonly requestedSlug: string;

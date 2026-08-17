@@ -18,6 +18,8 @@ export default {
       "/",
       "/projects",
       "/writings",
+      "/rss.xml",
+      "/sitemap.xml",
       ...projectSlugs.map((slug) => `/projects/${slug}`),
       ...writingSlugs.map((slug) => `/writings/${slug}`),
     ];

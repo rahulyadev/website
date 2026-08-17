@@ -338,7 +338,7 @@ describe("content routes", () => {
     expect(JSON.stringify(data)).not.toContain("sourcePath");
   });
 
-  it("obtains the four project plans and empty writing collection through loaders", async () => {
+  it("obtains the four project plans and five summary-only writings through loaders", async () => {
     await expect(projectsLoader()).resolves.toMatchObject({
       items: [
         { slug: "tourney" },
@@ -347,7 +347,15 @@ describe("content routes", () => {
         { slug: "universal-job-tracker" },
       ],
     });
-    await expect(writingsLoader()).resolves.toMatchObject({ items: [] });
+    await expect(writingsLoader()).resolves.toMatchObject({
+      items: [
+        { slug: "async-document-processing-retries-dlq" },
+        { slug: "database-backed-pytest-fixtures" },
+        { slug: "jwt-revocation-rate-limiting-redis" },
+        { slug: "phased-application-modernization" },
+        { slug: "reducing-api-payloads" },
+      ],
+    });
   });
 
   it.each([
@@ -363,14 +371,15 @@ describe("content routes", () => {
     expect(document.querySelectorAll("h1")).toHaveLength(1);
   });
 
-  it.each([["/writings", "No published writings are available yet."]])(
-    "renders an accessible empty state for %s",
-    async (path, message) => {
-      renderRoute(path);
+  it("renders the approved writings introduction", async () => {
+    renderRoute("/writings");
 
-      expect(await screen.findByText(message)).toBeVisible();
-    },
-  );
+    expect(
+      await screen.findByText(
+        "Notes on backend systems, application modernization, testing, and the engineering decisions behind maintainable software.",
+      ),
+    ).toBeVisible();
+  });
 
   it("provides semantic navigation and a working skip link", async () => {
     const user = userEvent.setup();
