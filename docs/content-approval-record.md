@@ -1,6 +1,6 @@
 # Content approval record
 
-Approval date: 2026-08-15
+Professional-content approval date: 2026-08-15
 
 The Senior Backend Engineer and Senior Full-Stack Engineer résumé variants are private factual sources for Milestone 3. Rahul gave final approval to publish every fact contained in either source.
 
@@ -12,5 +12,12 @@ The following implementation gates remain deferred:
 
 - Downloadable résumé artifact: Milestone 5.
 - Profile photograph: after Milestone 4 design approval.
-- Personal-project case studies: Milestone 7.
 - Markdown writings: Milestones 8 and 9.
+
+## Milestone 7 project-roadmap approval
+
+Approval date: 2026-08-17
+
+Rahul approved the four public WIP project records for Tourney, URL Shortener, Portfolio Tracker, and Universal Job Tracker, including their editorial order, summaries, planned destinations, planned capabilities, planned stacks, stack rationales, later possibilities, and Portfolio Tracker disclaimer.
+
+Development has not started on these products. Their public presentation must distinguish intended direction from shipped functionality, keep planned destinations non-interactive while status is WIP, and avoid invented progress, outcomes, repositories, deployment claims, or delivery dates.

@@ -33,9 +33,10 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const navigationRegionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen || typeof document === "undefined") return;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -43,10 +44,23 @@ export function SiteHeader({
       setMenuOpen(false);
       menuButtonRef.current?.focus();
     };
+    const handleOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        !(target instanceof Node) ||
+        navigationRegionRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setMenuOpen(false);
+    };
 
     document.addEventListener("keydown", handleEscape);
+    document.addEventListener("pointerdown", handleOutsidePointer);
     return () => {
       document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("pointerdown", handleOutsidePointer);
     };
   }, [menuOpen]);
 
@@ -80,58 +94,60 @@ export function SiteHeader({
           </span>
         </NavLink>
 
-        <IconButton
-          aria-controls="primary-navigation-panel"
-          aria-expanded={menuOpen}
-          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-          className="site-menu-toggle"
-          onClick={() => {
-            setMenuOpen((open) => !open);
-          }}
-          ref={menuButtonRef}
-          variant="ghost"
-        >
-          <MenuIcon open={menuOpen} />
-        </IconButton>
+        <div className="site-navigation-region" ref={navigationRegionRef}>
+          <IconButton
+            aria-controls="primary-navigation-panel"
+            aria-expanded={menuOpen}
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            className="site-menu-toggle"
+            onClick={() => {
+              setMenuOpen((open) => !open);
+            }}
+            ref={menuButtonRef}
+            variant="ghost"
+          >
+            <MenuIcon open={menuOpen} />
+          </IconButton>
 
-        <div
-          className="site-navigation-panel"
-          data-open={menuOpen}
-          id="primary-navigation-panel"
-        >
-          <nav aria-label="Primary">
-            <ul className="site-navigation">
-              <li>
-                <NavLink
-                  className="site-navigation__link"
-                  end
-                  onClick={closeMenu}
-                  to="/"
-                >
-                  Home
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  className="site-navigation__link"
-                  onClick={closeMenu}
-                  to="/projects"
-                >
-                  Projects
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  className="site-navigation__link"
-                  onClick={closeMenu}
-                  to="/writings"
-                >
-                  Writings
-                </NavLink>
-              </li>
-            </ul>
-          </nav>
-          <ThemeToggle aria-label="Site theme" presentation="compact" />
+          <div
+            className="site-navigation-panel"
+            data-open={menuOpen}
+            id="primary-navigation-panel"
+          >
+            <nav aria-label="Primary">
+              <ul className="site-navigation">
+                <li>
+                  <NavLink
+                    className="site-navigation__link"
+                    end
+                    onClick={closeMenu}
+                    to="/"
+                  >
+                    Home
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    className="site-navigation__link"
+                    onClick={closeMenu}
+                    to="/projects"
+                  >
+                    Projects
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
+                    className="site-navigation__link"
+                    onClick={closeMenu}
+                    to="/writings"
+                  >
+                    Writings
+                  </NavLink>
+                </li>
+              </ul>
+            </nav>
+            <ThemeToggle aria-label="Site theme" presentation="compact" />
+          </div>
         </div>
       </Container>
     </header>

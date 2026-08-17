@@ -1,4 +1,4 @@
-import { Fragment, useId } from "react";
+import { Fragment, useId, useState } from "react";
 
 import type {
   HomeExperienceData,
@@ -54,8 +54,12 @@ function Contributions({
 }: {
   contributions: HomeExperienceData["roles"][number]["contributions"];
 }) {
+  const additionalContributionsId = useId();
+  const [expanded, setExpanded] = useState(false);
   const visible = contributions.slice(0, visibleContributionCount);
   const remaining = contributions.slice(visibleContributionCount);
+  const contributionLabel =
+    remaining.length === 1 ? "contribution" : "contributions";
 
   return (
     <div className="experience-role__contributions">
@@ -71,12 +75,23 @@ function Contributions({
         ))}
       </ol>
       {remaining.length > 0 ? (
-        <details>
-          <summary>
-            Show {remaining.length} more contribution
-            {remaining.length === 1 ? "" : "s"}
+        <details open={expanded}>
+          <summary
+            aria-controls={additionalContributionsId}
+            aria-expanded={expanded}
+            onClick={(event) => {
+              event.preventDefault();
+              setExpanded((current) => !current);
+            }}
+            role="button"
+          >
+            {expanded ? "Hide" : "Show"} {remaining.length} more{" "}
+            {contributionLabel}
           </summary>
-          <ol start={visibleContributionCount + 1}>
+          <ol
+            id={additionalContributionsId}
+            start={visibleContributionCount + 1}
+          >
             {remaining.map((contribution) => (
               <li
                 className="home-prose"

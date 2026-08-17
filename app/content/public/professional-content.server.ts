@@ -13,7 +13,7 @@ export const professionalContent = {
           id: "role-sopra-senior-software-engineer",
           title: "Senior Software Engineer",
           dates: { start: "2025-08", end: { kind: "present" } },
-          location: "Bengaluru, Karnataka, India",
+          location: "Bengaluru, India",
           engagement: {
             relationship: "customer",
             organization: "Airbus",
@@ -82,7 +82,7 @@ export const professionalContent = {
             start: "2023-06",
             end: { kind: "date", value: "2025-08" },
           },
-          location: "Bengaluru, Karnataka, India",
+          location: "Bengaluru, India",
           summary:
             "Modernized supplier-facing modules and delivered greenfield modules from requirements through release.",
           order: 10,
@@ -144,7 +144,7 @@ export const professionalContent = {
             start: "2020-11",
             end: { kind: "date", value: "2023-06" },
           },
-          location: "Pune, Maharashtra, India",
+          location: "Pune, India",
           summary:
             "Delivered backend and frontend features, integrations, releases, and testing improvements across client projects.",
           order: 10,

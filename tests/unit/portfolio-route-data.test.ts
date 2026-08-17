@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadHomePageData,
+  loadProjectDetailPageData,
+  loadProjectsPageData,
   loadSiteShellData,
 } from "../../app/content/portfolio-route-data.server";
 import { professionalContent } from "../../app/content/public/professional-content.server";
@@ -29,7 +31,7 @@ describe("portfolio route-data projections", () => {
     );
   });
 
-  it("returns the exact render-only home fields needed for Milestone 6", async () => {
+  it("returns the exact render-only home fields needed through Milestone 7", async () => {
     const data = await loadHomePageData();
 
     expectExactKeys(data, [
@@ -39,6 +41,7 @@ describe("portfolio route-data projections", () => {
       "location",
       "credibilityCards",
       "experiences",
+      "projects",
       "skillGroups",
       "education",
       "contacts",
@@ -123,9 +126,9 @@ describe("portfolio route-data projections", () => {
       "Nov 2020–Jun 2023",
     ]);
     expect(roles.map((role) => role?.location)).toEqual([
-      "Bengaluru, Karnataka, India",
-      "Bengaluru, Karnataka, India",
-      "Pune, Maharashtra, India",
+      "Bengaluru, India",
+      "Bengaluru, India",
+      "Pune, India",
     ]);
     expect(roles[0]?.engagement).toEqual({
       label: "Customer engagement",
@@ -134,6 +137,30 @@ describe("portfolio route-data projections", () => {
     expect(roles[1]?.engagement).toBeUndefined();
     expect(roles[2]?.engagement).toBeUndefined();
     expect(roles.map((role) => role?.contributions.length)).toEqual([6, 5, 3]);
+    expect(data.projects.map((project) => project.slug)).toEqual([
+      "tourney",
+      "url-shortener",
+      "portfolio-tracker",
+      "universal-job-tracker",
+    ]);
+    expect(data.projects.map((project) => project.plannedStack)).toEqual([
+      ["FastAPI", "React", "PostgreSQL", "Redis"],
+      ["FastAPI", "React", "PostgreSQL", "Redis"],
+      ["Django REST Framework", "React", "PostgreSQL", "RabbitMQ"],
+      ["FastAPI", "Vue.js", "PostgreSQL", "Pydantic"],
+    ]);
+    for (const project of data.projects) {
+      expectExactKeys(project, [
+        "slug",
+        "name",
+        "summary",
+        "status",
+        "plannedDestination",
+        "plannedStack",
+        "projectMark",
+      ]);
+      expect(project.status).toBe("wip");
+    }
     const sourceContributions = professionalContent.experiences.map(
       (experience) =>
         experience.roles.map((role) =>
@@ -234,5 +261,73 @@ describe("portfolio route-data projections", () => {
       /credibilityHighlights|featuredProjects|recentWritings|supportingClaimIds/,
     );
     expect(serialized).not.toContain("claim-");
+  });
+
+  it("keeps project index and detail payloads view-specific", async () => {
+    const index = await loadProjectsPageData();
+    const detail = await loadProjectDetailPageData("portfolio-tracker");
+
+    expectExactKeys(index, ["canonicalOrigin", "seo", "items"]);
+    expect(index.items).toHaveLength(4);
+    for (const project of index.items) {
+      expectExactKeys(project, [
+        "slug",
+        "name",
+        "summary",
+        "status",
+        "plannedDestination",
+        "plannedStack",
+        "projectMark",
+      ]);
+    }
+
+    expect(detail.kind).toBe("found");
+    if (detail.kind !== "found") {
+      throw new Error("Expected Portfolio Tracker detail data.");
+    }
+    expectExactKeys(detail.data, [
+      "canonicalOrigin",
+      "project",
+      "previousProject",
+      "nextProject",
+    ]);
+    expectExactKeys(detail.data.project, [
+      "slug",
+      "name",
+      "summary",
+      "status",
+      "plannedDestination",
+      "plannedCapabilities",
+      "plannedStack",
+      "stackRationale",
+      "laterPossibilities",
+      "disclaimer",
+      "projectMark",
+      "seo",
+    ]);
+    expect(detail.data.project.name).toBe("Portfolio Tracker");
+    expect(detail.data.previousProject).toEqual({
+      name: "URL Shortener",
+      path: "/projects/url-shortener",
+    });
+    expect(detail.data.nextProject).toEqual({
+      name: "Universal Job Tracker",
+      path: "/projects/universal-job-tracker",
+    });
+
+    const serialized = JSON.stringify({ index, detail });
+    expect(serialized).not.toMatch(
+      /approvedOn|byteSize|featuredOnHome|homeStack|metadataRemovalVerified|publicationStatus|sha256|sourcePath|supportingClaimIds/,
+    );
+    expect(serialized).not.toMatch(/"(?:id|order)":/);
+  });
+
+  it("returns a typed missing-project outcome without unrelated content", async () => {
+    await expect(loadProjectDetailPageData("missing-project")).resolves.toEqual(
+      {
+        kind: "not-found",
+        requestedSlug: "missing-project",
+      },
+    );
   });
 });

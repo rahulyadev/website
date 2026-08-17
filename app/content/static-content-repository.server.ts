@@ -261,12 +261,8 @@ export class StaticContentRepository implements ContentRepository {
       skillGroups: resolveSkillGroups(snapshot),
       education: resolveEducation(snapshot),
       featuredProjects: publishedProjects
-        .filter((project) => project.featuredOrder !== undefined)
-        .sort(
-          (left, right) =>
-            (left.featuredOrder ?? Number.MAX_SAFE_INTEGER) -
-            (right.featuredOrder ?? Number.MAX_SAFE_INTEGER),
-        ),
+        .filter((project) => project.featuredOnHome)
+        .sort((left, right) => left.order - right.order),
       recentWritings: publishedWritings.slice(0, 3),
       resumeAsset: snapshot.site.resumeAssets.find(
         (asset) => asset.publicationStatus === "published",

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { PROJECT_SLUGS } from "../domain/content";
 import type {
   ContactLink,
   CredibilityHighlight,
@@ -16,7 +17,6 @@ import type {
   ProjectRecord,
   ProvisionalArticleContent,
   PublicImageAsset,
-  PublicLink,
   PublicResumeAsset,
   SeoDefaults,
   SeoMetadata,
@@ -380,55 +380,50 @@ const educationSchema = z.object({
   order: positiveOrderSchema,
 }) satisfies z.ZodType<Education>;
 
-const publicLinkSchema = z
-  .object({
-    id: stableIdSchema,
-    kind: z.enum(["internal", "external", "live", "source"]),
-    label: nonemptyTextSchema,
-    href: nonemptyTextSchema,
-    order: positiveOrderSchema,
-  })
-  .superRefine((link, context) => {
-    const valid =
-      link.kind === "internal"
-        ? isInternalPath(link.href)
-        : isSafeHttpsUrl(link.href);
-
-    if (!valid) {
-      context.addIssue({
-        code: "custom",
-        path: ["href"],
-        message:
-          link.kind === "internal"
-            ? "must be a safe root-relative internal path"
-            : "must be a safe HTTPS URL without credentials",
-      });
-    }
-  }) satisfies z.ZodType<PublicLink>;
-
 const publicationStatusSchema = z.enum(["draft", "published", "archived"]);
 
-const projectRecordSchema = z.object({
+export const projectStatusSchema = z.enum(["wip", "beta", "live"]);
+
+const plannedDestinationSchema = nonemptyTextSchema.regex(
+  /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/,
+  "must be a hostname without a scheme, path, query, or fragment",
+);
+
+const projectFieldsSchema = z.object({
   id: stableIdSchema,
   slug: slugSchema,
-  title: nonemptyTextSchema,
-  publicationStatus: publicationStatusSchema,
-  projectStatus: nonemptyTextSchema.optional(),
-  summary: nonemptyTextSchema.optional(),
-  problem: nonemptyTextSchema.optional(),
-  role: nonemptyTextSchema.optional(),
-  approach: nonemptyTextSchema.optional(),
-  architecture: nonemptyTextSchema.optional(),
-  order: positiveOrderSchema.optional(),
-  featuredOrder: positiveOrderSchema.optional(),
-  decisions: z.array(orderedStatementSchema).readonly(),
-  outcomes: z.array(orderedStatementSchema).readonly(),
-  technologyIds: z.array(stableIdSchema).readonly(),
-  links: z.array(publicLinkSchema).readonly(),
-  imageAssetIds: z.array(stableIdSchema).readonly(),
-  relatedProjectIds: z.array(stableIdSchema).readonly(),
-  seo: seoMetadataSchema.optional(),
-}) satisfies z.ZodType<ProjectRecord>;
+  name: nonemptyTextSchema,
+  summary: nonemptyTextSchema,
+  status: projectStatusSchema,
+  order: positiveOrderSchema,
+  plannedDestination: plannedDestinationSchema,
+  plannedShortLinkPattern: nonemptyTextSchema.optional(),
+  plannedCapabilities: z
+    .array(orderedStatementSchema)
+    .min(1, "must include at least one planned capability")
+    .readonly(),
+  plannedStack: z
+    .array(nonemptyTextSchema)
+    .min(1, "must include at least one planned technology")
+    .readonly(),
+  homeStack: z
+    .array(nonemptyTextSchema)
+    .min(1, "must include at least one home-card technology")
+    .readonly(),
+  stackRationale: nonemptyTextSchema,
+  laterPossibilities: z.array(orderedStatementSchema).readonly(),
+  disclaimer: nonemptyTextSchema.optional(),
+  featuredOnHome: z.boolean(),
+  projectMark: z.enum(PROJECT_SLUGS),
+  seo: seoMetadataSchema,
+});
+
+const projectRecordSchema = z.discriminatedUnion("publicationStatus", [
+  projectFieldsSchema.extend({ publicationStatus: z.literal("published") }),
+  projectFieldsSchema.extend({
+    publicationStatus: z.enum(["draft", "archived"]),
+  }),
+]) satisfies z.ZodType<ProjectRecord>;
 
 const provisionalArticleContentSchema = z.object({
   format: z.literal("provisional"),

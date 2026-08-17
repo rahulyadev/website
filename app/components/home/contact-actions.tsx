@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import type { HomePageData } from "../../domain/route-data";
 import { IconButton, LinkButton, VisuallyHidden } from "../ui";
@@ -15,6 +15,14 @@ function CopyIcon() {
     <svg aria-hidden="true" viewBox="0 0 24 24">
       <rect height="13" rx="2" width="13" x="8" y="8" />
       <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
     </svg>
   );
 }
@@ -80,7 +88,20 @@ export function ContactActions({
   const github = socialLinks.find((link) => link.platform === "github");
   const linkedin = socialLinks.find((link) => link.platform === "linkedin");
   const copyTooltipId = useId();
-  const [copyStatus, setCopyStatus] = useState("");
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const [copyPhase, setCopyPhase] = useState<"idle" | "copied">("idle");
+  const [copyAnnouncement, setCopyAnnouncement] = useState("");
+
+  useEffect(
+    () => () => {
+      if (copyResetTimer.current !== undefined) {
+        clearTimeout(copyResetTimer.current);
+      }
+    },
+    [],
+  );
 
   if (
     email === undefined ||
@@ -96,9 +117,22 @@ export function ContactActions({
   const copyEmail = async () => {
     try {
       await navigator.clipboard.writeText(email.label);
-      setCopyStatus("Email address copied.");
+      if (copyResetTimer.current !== undefined) {
+        clearTimeout(copyResetTimer.current);
+      }
+      setCopyPhase("copied");
+      setCopyAnnouncement("Email copied");
+      copyResetTimer.current = setTimeout(() => {
+        setCopyPhase("idle");
+        copyResetTimer.current = undefined;
+      }, 2_000);
     } catch {
-      setCopyStatus("Copy failed. Use the email link instead.");
+      if (copyResetTimer.current !== undefined) {
+        clearTimeout(copyResetTimer.current);
+        copyResetTimer.current = undefined;
+      }
+      setCopyPhase("idle");
+      setCopyAnnouncement("Copy failed. Use the email link instead.");
     }
   };
 
@@ -114,19 +148,20 @@ export function ContactActions({
                 <IconButton
                   aria-describedby={copyTooltipId}
                   aria-label="Copy email address"
+                  data-copy-status={copyPhase}
                   onClick={() => {
                     void copyEmail();
                   }}
                   variant="ghost"
                 >
-                  <CopyIcon />
+                  {copyPhase === "copied" ? <CheckIcon /> : <CopyIcon />}
                 </IconButton>
                 <span
                   className="contact-actions__copy-tooltip"
                   id={copyTooltipId}
                   role="tooltip"
                 >
-                  Copy email
+                  {copyPhase === "copied" ? "Copied" : "Copy email"}
                 </span>
               </span>
             </dd>
@@ -171,7 +206,7 @@ export function ContactActions({
       </address>
 
       <VisuallyHidden aria-live="polite" role="status">
-        {copyStatus}
+        {copyAnnouncement}
       </VisuallyHidden>
     </div>
   );

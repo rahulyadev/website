@@ -6,6 +6,7 @@ const contentSectionIds = [
   "about",
   "credibility",
   "experience",
+  "projects",
   "skills",
   "education",
   "contact",
@@ -128,6 +129,7 @@ test("home renders the approved professional structure and exact public inventor
     "about",
     "credibility",
     "experience",
+    "projects",
     "skills",
     "education",
     "contact",
@@ -187,15 +189,10 @@ test("home renders the approved professional structure and exact public inventor
     "Software Developer",
     "Software Engineer",
   ]);
-  for (const location of [
-    "Bengaluru, Karnataka, India",
-    "Pune, Maharashtra, India",
-  ]) {
+  for (const location of ["Bengaluru, India", "Pune, India"]) {
     await expect(timeline.getByText(location).first()).toBeAttached();
   }
-  await expect(timeline.getByText("Bengaluru, Karnataka, India")).toHaveCount(
-    2,
-  );
+  await expect(timeline.getByText("Bengaluru, India")).toHaveCount(2);
   await expect(timeline.getByText(/Customer engagement:\s*Airbus/)).toHaveCount(
     1,
   );
@@ -1647,52 +1644,90 @@ test("education, Contact, and footer use only the approved boundaries", async ({
   }
 });
 
-test("native contribution disclosures work by keyboard and remain accessible", async ({
+test("native contribution disclosures toggle accurate labels by pointer and keyboard", async ({
   page,
 }) => {
-  await page.goto("/");
-  const details = page.locator(".experience-role__contributions details");
-  await expect(details).toHaveCount(2);
-  await expectNoSeriousAxeViolations(page);
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const details = page.locator(".experience-role__contributions details");
+    await expect(details).toHaveCount(2);
+    await expectNoSeriousAxeViolations(page);
 
-  const firstSummary = details.first().locator("summary");
-  const collapsedGeometry = await details.first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const contributions = element.closest(".experience-role__contributions");
-    if (!(contributions instanceof HTMLElement)) {
-      throw new Error("Contribution container is missing.");
-    }
-    const contributionsRect = contributions.getBoundingClientRect();
-    return {
-      contributionLeft: contributionsRect.left,
-      contributionRight: contributionsRect.right,
-      detailsLeft: rect.left,
-      detailsRight: rect.right,
-    };
-  });
-  await firstSummary.focus();
-  await expect(firstSummary).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(details.first()).toHaveAttribute("open", "");
-  await expect(details.first().locator("ol")).toHaveAttribute("start", "4");
-  const expandedGeometry = await details.first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return { left: rect.left, right: rect.right };
-  });
-  expect(collapsedGeometry.detailsLeft).toBeCloseTo(
-    collapsedGeometry.contributionLeft,
-    1,
-  );
-  expect(collapsedGeometry.detailsRight).toBeCloseTo(
-    collapsedGeometry.contributionRight,
-    1,
-  );
-  expect(expandedGeometry.left).toBeCloseTo(collapsedGeometry.detailsLeft, 1);
-  expect(expandedGeometry.right).toBeCloseTo(collapsedGeometry.detailsRight, 1);
-  await expectNoSeriousAxeViolations(page);
+    const firstSummary = details.first().getByRole("button", {
+      name: "Show 3 more contributions",
+    });
+    const controlledId = await firstSummary.getAttribute("aria-controls");
+    expect(controlledId).toBeTruthy();
+    await expect(firstSummary).toHaveAttribute("aria-expanded", "false");
+    await expect(details.first().locator("ol")).toHaveAttribute("start", "4");
+    await expect(details.first().locator("ol")).toHaveAttribute(
+      "id",
+      controlledId ?? "",
+    );
 
-  await page.keyboard.press("Enter");
-  await expect(details.first()).not.toHaveAttribute("open", "");
+    const collapsedGeometry = await details.first().evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const contributions = element.closest(".experience-role__contributions");
+      if (!(contributions instanceof HTMLElement)) {
+        throw new Error("Contribution container is missing.");
+      }
+      const contributionsRect = contributions.getBoundingClientRect();
+      return {
+        contributionLeft: contributionsRect.left,
+        contributionRight: contributionsRect.right,
+        detailsLeft: rect.left,
+        detailsRight: rect.right,
+      };
+    });
+
+    await firstSummary.click();
+    const hideDisclosure = details.first().getByRole("button", {
+      name: "Hide 3 more contributions",
+    });
+    await expect(details.first()).toHaveAttribute("open", "");
+    await expect(hideDisclosure).toHaveAttribute("aria-expanded", "true");
+    await expect(hideDisclosure).toBeFocused();
+    await expect(details.first().locator("ol > li")).toHaveCount(3);
+
+    const expandedGeometry = await details.first().evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right };
+    });
+    expect(collapsedGeometry.detailsLeft).toBeCloseTo(
+      collapsedGeometry.contributionLeft,
+      1,
+    );
+    expect(collapsedGeometry.detailsRight).toBeCloseTo(
+      collapsedGeometry.contributionRight,
+      1,
+    );
+    expect(expandedGeometry.left).toBeCloseTo(collapsedGeometry.detailsLeft, 1);
+    expect(expandedGeometry.right).toBeCloseTo(
+      collapsedGeometry.detailsRight,
+      1,
+    );
+    await expectNoSeriousAxeViolations(page);
+
+    await page.keyboard.press("Space");
+    await expect(details.first()).not.toHaveAttribute("open", "");
+    const showDisclosure = details.first().getByRole("button", {
+      name: "Show 3 more contributions",
+    });
+    await expect(showDisclosure).toHaveAttribute("aria-expanded", "false");
+    await expect(showDisclosure).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(details.first()).toHaveAttribute("open", "");
+    await expect(
+      details.first().getByRole("button", {
+        name: "Hide 3 more contributions",
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
 });
 
 test("professional sections reflow at 320px and 200 percent text without overflow", async ({
