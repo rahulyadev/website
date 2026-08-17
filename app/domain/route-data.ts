@@ -1,11 +1,17 @@
 import type {
   ArticleBlockNode,
   ArticleTableOfContentsItem,
+  InternalPath,
   ProjectMarkId,
   ProjectStatus,
-  SeoMetadata,
   SkillGroupCategory,
 } from "./content";
+
+export interface PublicSeoMetadata {
+  readonly title: string;
+  readonly description: string;
+  readonly canonicalPath: InternalPath;
+}
 
 export interface ResponsiveImageVariant {
   readonly height: number;
@@ -99,7 +105,7 @@ export interface ProjectCardData {
 
 export interface ProjectsPageData {
   readonly canonicalOrigin: string;
-  readonly seo: SeoMetadata;
+  readonly seo: PublicSeoMetadata;
   readonly items: readonly ProjectCardData[];
 }
 
@@ -121,7 +127,7 @@ export interface ProjectDetailData {
   readonly laterPossibilities: readonly string[];
   readonly disclaimer?: string | undefined;
   readonly projectMark: ProjectMarkId;
-  readonly seo: SeoMetadata;
+  readonly seo: PublicSeoMetadata;
 }
 
 export interface ProjectDetailPageData {
@@ -149,7 +155,7 @@ export interface WritingIndexItemData {
 
 export interface WritingsPageData {
   readonly canonicalOrigin: string;
-  readonly seo: SeoMetadata;
+  readonly seo: PublicSeoMetadata;
   readonly items: readonly WritingIndexItemData[];
 }
 
@@ -166,7 +172,7 @@ export interface WritingDetailData {
   readonly updatedOn?: string | undefined;
   readonly readingTimeMinutes: number;
   readonly tags: readonly string[];
-  readonly seo: SeoMetadata;
+  readonly seo: PublicSeoMetadata;
   readonly article: {
     readonly blocks: readonly ArticleBlockNode[];
     readonly tableOfContents: readonly ArticleTableOfContentsItem[];
@@ -190,7 +196,7 @@ export type WritingDetailPageLookup =
 
 export interface HomePageData {
   readonly canonicalOrigin: string;
-  readonly seo: SeoMetadata;
+  readonly seo: PublicSeoMetadata;
   readonly location: string;
   readonly identity: {
     readonly displayName: string;

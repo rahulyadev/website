@@ -170,23 +170,6 @@ function readQuotedAttribute(tag, attributeName) {
   return match?.[2];
 }
 
-function hasMetaToken(html, metaName, token) {
-  const normalizedName = metaName.toLowerCase();
-  const normalizedToken = token.toLowerCase();
-
-  return [...html.matchAll(/<meta\b[^>]*>/gi)].some(([tag]) => {
-    if (readQuotedAttribute(tag, "name")?.toLowerCase() !== normalizedName) {
-      return false;
-    }
-
-    return Boolean(
-      readQuotedAttribute(tag, "content")
-        ?.split(/[\s,]+/)
-        .some((value) => value.toLowerCase() === normalizedToken),
-    );
-  });
-}
-
 function decodeBasicHtmlEntities(value) {
   return value
     .replaceAll("&amp;", "&")
@@ -554,30 +537,40 @@ const expectedWritings = [
     slug: "async-document-processing-retries-dlq",
     title:
       "Designing Asynchronous Document Processing with Retries, Backoff, and Dead-Letter Queues",
+    description:
+      "A generalized design for reliable document-processing workers that separates durable intake, idempotent stages, bounded retries, and operator-owned dead-letter recovery.",
     publishedOn: "2026-08-17",
     rssPublishedOn: "Mon, 17 Aug 2026 00:00:00 GMT",
   },
   {
     slug: "database-backed-pytest-fixtures",
     title: "Replacing Mock-Heavy Tests with Database-Backed pytest Fixtures",
+    description:
+      "A guide to moving persistence and authorization tests toward small database-backed fixtures while retaining fast unit tests at genuinely isolated boundaries.",
     publishedOn: "2026-08-10",
     rssPublishedOn: "Mon, 10 Aug 2026 00:00:00 GMT",
   },
   {
     slug: "jwt-revocation-rate-limiting-redis",
     title: "Designing JWT Revocation and API Rate Limiting with Redis",
+    description:
+      "A boundary-focused design for using Redis to revoke otherwise valid JWTs and enforce atomic API rate limits without confusing the two policies.",
     publishedOn: "2026-08-03",
     rssPublishedOn: "Mon, 03 Aug 2026 00:00:00 GMT",
   },
   {
     slug: "phased-application-modernization",
     title: "Phased Application Modernization Without a Big-Bang Cutover",
+    description:
+      "A practical framework for moving a legacy application toward a modern stack through explicit seams, reversible routing, and incremental ownership.",
     publishedOn: "2026-07-27",
     rssPublishedOn: "Mon, 27 Jul 2026 00:00:00 GMT",
   },
   {
     slug: "reducing-api-payloads",
     title: "Reducing API Payloads with Response Shaping and Compression",
+    description:
+      "A measurement-led approach to making data-heavy APIs smaller by returning intentional fields, paginating work, and applying compression at the right boundary.",
     publishedOn: "2026-07-20",
     rssPublishedOn: "Mon, 20 Jul 2026 00:00:00 GMT",
   },
@@ -588,72 +581,103 @@ const expectedDocuments = new Map([
     "index.html",
     {
       title: "Rahul Yadav | Senior Software Engineer",
+      description:
+        "Senior Software Engineer Rahul Yadav has six years of experience modernizing Python backends and delivering backend-heavy React and Vue products.",
       heading: "Rahul Yadav",
       canonical: "https://rahuly.in/",
       indexable: true,
+      openGraphType: "website",
+      structuredTypes: ["ProfilePage", "WebSite"],
     },
   ],
   [
     "projects/index.html",
     {
       title: "Projects | Rahul Yadav",
+      description:
+        "A working roadmap of useful products Rahul Yadav plans to build, with four projects currently marked work in progress.",
       heading: "Projects",
       canonical: "https://rahuly.in/projects",
       indexable: true,
+      openGraphType: "website",
+      structuredTypes: [],
     },
   ],
   [
     "writings/index.html",
     {
       title: "Writings | Rahul Yadav",
+      description:
+        "Engineering notes on backend systems, application modernization, testing, and the decisions behind maintainable software.",
       heading: "Writings",
       canonical: "https://rahuly.in/writings",
       indexable: true,
+      openGraphType: "website",
+      structuredTypes: ["CollectionPage"],
     },
   ],
   [
     "projects/tourney/index.html",
     {
       title: "Tourney — Work in progress | Rahul Yadav",
+      description:
+        "A flexible tournament manager for creating competitions, recording scores, calculating results, and announcing winners across different games and variants.",
       heading: "Tourney",
       canonical: "https://rahuly.in/projects/tourney",
       indexable: false,
+      openGraphType: "website",
+      structuredTypes: [],
     },
   ],
   [
     "projects/url-shortener/index.html",
     {
       title: "URL Shortener — Work in progress | Rahul Yadav",
+      description:
+        "A practical planned service for creating, managing, and safely redirecting short links while revisiting technologies in Rahul Yadav’s stack.",
       heading: "URL Shortener",
       canonical: "https://rahuly.in/projects/url-shortener",
       indexable: false,
+      openGraphType: "website",
+      structuredTypes: [],
     },
   ],
   [
     "projects/portfolio-tracker/index.html",
     {
       title: "Portfolio Tracker — Work in progress | Rahul Yadav",
+      description:
+        "A planned long-term investment journal and portfolio tracker for recording decisions, strategies, exit plans, alerts, prices, and performance.",
       heading: "Portfolio Tracker",
       canonical: "https://rahuly.in/projects/portfolio-tracker",
       indexable: false,
+      openGraphType: "website",
+      structuredTypes: [],
     },
   ],
   [
     "projects/universal-job-tracker/index.html",
     {
       title: "Universal Job Tracker — Work in progress | Rahul Yadav",
+      description:
+        "A planned compact job-application tracker with customizable columns and typed fields for different job-search workflows.",
       heading: "Universal Job Tracker",
       canonical: "https://rahuly.in/projects/universal-job-tracker",
       indexable: false,
+      openGraphType: "website",
+      structuredTypes: [],
     },
   ],
-  ...expectedWritings.map(({ slug, title }) => [
+  ...expectedWritings.map(({ slug, title, description }) => [
     `writings/${slug}/index.html`,
     {
       title: `${title} | Rahul Yadav`,
+      description,
       heading: title,
       canonical: `https://rahuly.in/writings/${slug}`,
       indexable: true,
+      openGraphType: "article",
+      structuredTypes: ["Article", "BreadcrumbList"],
     },
   ]),
 ]);
@@ -888,6 +912,19 @@ for (const marker of forbiddenOriginalUploadNames) {
 const generatedFiles = generatedEntries
   .filter((entry) => !entry.isDirectory)
   .map((entry) => entry.absolutePath);
+for (const cssFile of generatedFiles.filter(
+  (file) => normalizedExtension(file) === ".css",
+)) {
+  const css = await readFile(cssFile, "utf8");
+  if (
+    /@import\s+(?:url\()?\s*["']?(?:https?:)?\/\//i.test(css) ||
+    /url\(\s*["']?(?:https?:)?\/\//i.test(css)
+  ) {
+    throw new Error(
+      `Found a remote font or image dependency in ${relativeGeneratedPath(cssFile)}.`,
+    );
+  }
+}
 const approvedPublicAssetPaths = approvedPublicAssets
   .map((asset) => asset.path)
   .sort();
@@ -1042,16 +1079,47 @@ if (JSON.stringify(generatedXml) !== JSON.stringify(expectedXml)) {
   );
 }
 
+const robotsText = await requireNonEmptyFile("robots.txt");
+if (
+  robotsText !==
+  "User-agent: *\nAllow: /\n\nSitemap: https://rahuly.in/sitemap.xml\n"
+) {
+  throw new Error("robots.txt does not match the approved root policy.");
+}
+
 for (const [relativePath, expected] of expectedDocuments) {
   const html = await requireNonEmptyFile(relativePath);
   const document = new JSDOM(html).window.document;
   const actualTitle = document.title;
 
-  if (actualTitle !== expected.title) {
+  if (
+    actualTitle !== expected.title ||
+    document.querySelectorAll("title").length !== 1
+  ) {
     throw new Error(
-      `Expected the title "${expected.title}" in ${relativePath}; received ${actualTitle ? `"${actualTitle}"` : "no title"}.`,
+      `Expected one title of "${expected.title}" in ${relativePath}; received ${actualTitle ? `"${actualTitle}"` : "no title"}.`,
     );
   }
+  if (document.documentElement.lang !== "en-IN") {
+    throw new Error(`Expected html lang=en-IN in ${relativePath}.`);
+  }
+
+  const expectUniqueAttribute = (selector, attribute, expectedValue) => {
+    const elements = [...document.querySelectorAll(selector)];
+    if (
+      elements.length !== 1 ||
+      elements[0]?.getAttribute(attribute) !== expectedValue
+    ) {
+      throw new Error(
+        `Expected one ${selector} with ${attribute}=${expectedValue} in ${relativePath}.`,
+      );
+    }
+  };
+  expectUniqueAttribute(
+    'meta[name="description"]',
+    "content",
+    expected.description,
+  );
 
   const levelOneHeadings = [...document.querySelectorAll("h1")].map(
     (heading) => heading.textContent?.replaceAll(/\s+/g, " ").trim() ?? "",
@@ -1076,25 +1144,118 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  const robotsTokens = new Set(
-    (
-      document.querySelector('meta[name="robots"]')?.getAttribute("content") ??
-      ""
-    )
-      .toLocaleLowerCase()
-      .split(/[\s,]+/)
-      .filter(Boolean),
-  );
-  const hasNoindex = robotsTokens.has("noindex");
-  const hasFollow = robotsTokens.has("follow");
-  if (expected.indexable && hasNoindex) {
+  const robotsMetadata = [...document.querySelectorAll('meta[name="robots"]')];
+  if (expected.indexable && robotsMetadata.length !== 0) {
     throw new Error(
-      `Expected ${relativePath} to remain indexable, but found a robots directive containing noindex.`,
+      `Expected ${relativePath} to remain indexable without a robots override.`,
     );
   }
-  if (!expected.indexable && (!hasNoindex || !hasFollow)) {
+  if (
+    !expected.indexable &&
+    (robotsMetadata.length !== 1 ||
+      robotsMetadata[0]?.getAttribute("content") !== "noindex,follow")
+  ) {
     throw new Error(
-      `Expected ${relativePath} to contain the noindex,follow robots directive.`,
+      `Expected ${relativePath} to contain one exact noindex,follow robots directive.`,
+    );
+  }
+
+  for (const [property, expectedValue] of [
+    ["og:type", expected.openGraphType],
+    ["og:title", expected.title],
+    ["og:description", expected.description],
+    ["og:url", expected.canonical],
+    ["og:site_name", "Rahul Yadav"],
+    ["og:locale", "en_IN"],
+  ]) {
+    expectUniqueAttribute(
+      `meta[property="${property}"]`,
+      "content",
+      expectedValue,
+    );
+  }
+  for (const [name, expectedValue] of [
+    ["twitter:card", "summary"],
+    ["twitter:title", expected.title],
+    ["twitter:description", expected.description],
+    ["twitter:url", expected.canonical],
+  ]) {
+    expectUniqueAttribute(`meta[name="${name}"]`, "content", expectedValue);
+  }
+  for (const selector of [
+    'meta[property="og:image"]',
+    'meta[name="twitter:image"]',
+    'meta[name="twitter:site"]',
+    'meta[name="twitter:creator"]',
+  ]) {
+    if (document.querySelector(selector) !== null) {
+      throw new Error(
+        `Found deferred social metadata ${selector} in ${relativePath}.`,
+      );
+    }
+  }
+
+  const feedLinks = [
+    ...document.querySelectorAll(
+      'link[rel="alternate"][type="application/rss+xml"]',
+    ),
+  ];
+  if (
+    expected.indexable
+      ? feedLinks.length !== 1 ||
+        feedLinks[0]?.getAttribute("href") !== "https://rahuly.in/rss.xml"
+      : feedLinks.length !== 0
+  ) {
+    throw new Error(`Unexpected RSS discovery policy in ${relativePath}.`);
+  }
+
+  const structuredTypes = [
+    ...document.querySelectorAll('script[type="application/ld+json"]'),
+  ]
+    .map((script) => JSON.parse(script.textContent ?? "")["@type"])
+    .sort();
+  if (
+    JSON.stringify(structuredTypes) !==
+    JSON.stringify([...expected.structuredTypes].sort())
+  ) {
+    throw new Error(`Unexpected structured-data types in ${relativePath}.`);
+  }
+
+  for (const image of document.querySelectorAll("img")) {
+    const width = Number(image.getAttribute("width"));
+    const height = Number(image.getAttribute("height"));
+    if (
+      !Number.isInteger(width) ||
+      width < 1 ||
+      !Number.isInteger(height) ||
+      height < 1
+    ) {
+      throw new Error(
+        `Found an image without stable dimensions in ${relativePath}.`,
+      );
+    }
+  }
+  const remoteResource = [
+    ...document.querySelectorAll(
+      'script[src], img[src], source[src], link[rel="stylesheet"][href], link[rel="preload"][href], link[rel="icon"][href], link[rel="manifest"][href]',
+    ),
+  ].find((element) => {
+    const value = element.getAttribute("src") ?? element.getAttribute("href");
+    return (
+      value?.startsWith("http://") ||
+      value?.startsWith("https://") ||
+      value?.startsWith("//")
+    );
+  });
+  const remoteSourceSet = [...document.querySelectorAll("source[srcset]")].find(
+    (source) =>
+      (source.getAttribute("srcset") ?? "")
+        .split(",")
+        .some((candidate) => /^(?:https?:)?\/\//.test(candidate.trim())),
+  );
+  if (remoteResource !== undefined || remoteSourceSet !== undefined) {
+    throw new Error(
+      `Found a remote render-blocking resource in ${relativePath}.`,
     );
   }
 
@@ -1144,6 +1305,7 @@ for (const expectedMarkup of [
 }
 
 const spaFallback = await requireNonEmptyFile("__spa-fallback.html");
+const spaFallbackDocument = new JSDOM(spaFallback).window.document;
 
 if (!spaFallback.includes('role="status">Loading page.</p>')) {
   throw new Error(
@@ -1151,9 +1313,26 @@ if (!spaFallback.includes('role="status">Loading page.</p>')) {
   );
 }
 
-if (!hasMetaToken(spaFallback, "robots", "noindex")) {
+if (
+  spaFallbackDocument.title !== "Page not found | Rahul Yadav" ||
+  spaFallbackDocument.querySelectorAll("title").length !== 1 ||
+  spaFallbackDocument.documentElement.lang !== "en-IN" ||
+  spaFallbackDocument.querySelectorAll('meta[name="robots"]').length !== 1 ||
+  spaFallbackDocument
+    .querySelector('meta[name="robots"]')
+    ?.getAttribute("content") !== "noindex,follow"
+) {
   throw new Error(
-    "Expected __spa-fallback.html to contain a robots directive with the noindex token.",
+    "Expected __spa-fallback.html to contain the generic title, en-IN language and exact noindex,follow directive.",
+  );
+}
+if (
+  spaFallbackDocument.querySelector(
+    'meta[name="description"], link[rel="canonical"], meta[property^="og:"], meta[name^="twitter:"], link[rel="alternate"][type="application/rss+xml"], script[type="application/ld+json"]',
+  ) !== null
+) {
+  throw new Error(
+    "The SPA fallback must not contain canonical, social, feed or structured metadata.",
   );
 }
 
@@ -2201,6 +2380,59 @@ assertResponsiveImageContract(
   "main portrait",
 );
 
+const homeStructuredData = [
+  ...new JSDOM(homeHtml).window.document.querySelectorAll(
+    'script[type="application/ld+json"]',
+  ),
+].map((script) => JSON.parse(script.textContent ?? ""));
+const websiteJsonLd = homeStructuredData.find(
+  (block) => block["@type"] === "WebSite",
+);
+const profileJsonLd = homeStructuredData.find(
+  (block) => block["@type"] === "ProfilePage",
+);
+assertExactRecordFields(
+  websiteJsonLd,
+  ["@context", "@type", "inLanguage", "name", "url"],
+  "index.html",
+  "WebSite JSON-LD",
+);
+if (
+  websiteJsonLd["@context"] !== "https://schema.org" ||
+  websiteJsonLd["name"] !== homeData["identity"]["displayName"] ||
+  websiteJsonLd["url"] !== "https://rahuly.in/" ||
+  websiteJsonLd["inLanguage"] !== "en-IN"
+) {
+  throw new Error("WebSite JSON-LD diverges from visible home data.");
+}
+assertExactRecordFields(
+  profileJsonLd,
+  ["@context", "@type", "inLanguage", "mainEntity", "name", "url"],
+  "index.html",
+  "ProfilePage JSON-LD",
+);
+assertExactRecordFields(
+  profileJsonLd["mainEntity"],
+  ["@type", "description", "jobTitle", "name", "sameAs", "url"],
+  "index.html",
+  "ProfilePage Person JSON-LD",
+);
+if (
+  profileJsonLd["name"] !== homeData["identity"]["displayName"] ||
+  profileJsonLd["url"] !== "https://rahuly.in/" ||
+  profileJsonLd["inLanguage"] !== "en-IN" ||
+  profileJsonLd["mainEntity"]["@type"] !== "Person" ||
+  profileJsonLd["mainEntity"]["name"] !== homeData["identity"]["displayName"] ||
+  profileJsonLd["mainEntity"]["jobTitle"] !==
+    homeData["identity"]["roleLabel"] ||
+  profileJsonLd["mainEntity"]["description"] !==
+    homeData["identity"]["professionalPositioning"] ||
+  JSON.stringify(profileJsonLd["mainEntity"]["sameAs"]) !==
+    JSON.stringify(homeData["socialLinks"].map((link) => link["url"]))
+) {
+  throw new Error("ProfilePage JSON-LD diverges from visible home data.");
+}
+
 const forbiddenHomeFields = new Set([
   "credibilityHighlights",
   "featuredProjects",
@@ -2349,6 +2581,45 @@ for (const [index, expected] of expectedWritings.entries()) {
     );
   }
   writingIndexBySlug.set(expected.slug, item);
+}
+
+const writingsStructuredData = [
+  ...new JSDOM(
+    await requireNonEmptyFile("writings/index.html"),
+  ).window.document.querySelectorAll('script[type="application/ld+json"]'),
+].map((script) => JSON.parse(script.textContent ?? ""));
+const collectionJsonLd = writingsStructuredData.find(
+  (block) => block["@type"] === "CollectionPage",
+);
+assertExactRecordFields(
+  collectionJsonLd,
+  ["@context", "@type", "inLanguage", "mainEntity", "name", "url"],
+  "writings/index.html",
+  "CollectionPage JSON-LD",
+);
+assertExactRecordFields(
+  collectionJsonLd["mainEntity"],
+  ["@type", "itemListElement"],
+  "writings/index.html",
+  "writing ItemList JSON-LD",
+);
+const expectedWritingListItems = expectedWritings.map((writing, index) => ({
+  "@type": "ListItem",
+  position: index + 1,
+  name: writing.title,
+  url: `https://rahuly.in/writings/${writing.slug}`,
+}));
+if (
+  collectionJsonLd["name"] !== "Writings" ||
+  collectionJsonLd["url"] !== "https://rahuly.in/writings" ||
+  collectionJsonLd["inLanguage"] !== "en-IN" ||
+  collectionJsonLd["mainEntity"]["@type"] !== "ItemList" ||
+  JSON.stringify(collectionJsonLd["mainEntity"]["itemListElement"]) !==
+    JSON.stringify(expectedWritingListItems)
+) {
+  throw new Error(
+    "CollectionPage JSON-LD diverges from the visible writings index.",
+  );
 }
 
 function verifyArticleInlineNodes(nodes, relativePath, fieldPath) {
@@ -2754,6 +3025,13 @@ for (const expected of expectedWritings) {
   const jsonLdScripts = [
     ...document.querySelectorAll('script[type="application/ld+json"]'),
   ];
+  const jsonLdBlocks = jsonLdScripts.map((script) =>
+    JSON.parse(script.textContent ?? ""),
+  );
+  const jsonLd = jsonLdBlocks.find((block) => block["@type"] === "Article");
+  const breadcrumbJsonLd = jsonLdBlocks.find(
+    (block) => block["@type"] === "BreadcrumbList",
+  );
   if (article === null || prose === null) {
     throw new Error(`Expected semantic article markup in ${relativePath}.`);
   }
@@ -2795,7 +3073,7 @@ for (const expected of expectedWritings) {
     );
   }
   if (
-    jsonLdScripts.length !== 1 ||
+    jsonLdScripts.length !== 2 ||
     document
       .querySelector('meta[property="og:type"]')
       ?.getAttribute("content") !== "article" ||
@@ -2808,7 +3086,6 @@ for (const expected of expectedWritings) {
   ) {
     throw new Error(`Article metadata is incomplete in ${relativePath}.`);
   }
-  const jsonLd = JSON.parse(jsonLdScripts[0].textContent ?? "");
   assertExactRecordFields(
     jsonLd,
     [
@@ -2846,6 +3123,47 @@ for (const expected of expectedWritings) {
     relativePath,
     "Article author JSON-LD",
   );
+  if (
+    jsonLd["author"]["@type"] !== "Person" ||
+    jsonLd["author"]["name"] !== "Rahul Yadav" ||
+    jsonLd["author"]["url"] !== "https://rahuly.in/"
+  ) {
+    throw new Error(`Unexpected Article author data in ${relativePath}.`);
+  }
+  assertExactRecordFields(
+    breadcrumbJsonLd,
+    ["@context", "@type", "itemListElement"],
+    relativePath,
+    "BreadcrumbList JSON-LD",
+  );
+  const expectedBreadcrumbItems = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://rahuly.in/",
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Writings",
+      item: "https://rahuly.in/writings",
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: expected.title,
+    },
+  ];
+  if (
+    breadcrumbJsonLd["@context"] !== "https://schema.org" ||
+    JSON.stringify(breadcrumbJsonLd["itemListElement"]) !==
+      JSON.stringify(expectedBreadcrumbItems)
+  ) {
+    throw new Error(
+      `BreadcrumbList JSON-LD diverges from visible breadcrumbs in ${relativePath}.`,
+    );
+  }
 }
 
 function parseXmlDocument(xml, relativePath) {
@@ -2873,6 +3191,26 @@ const rssDocument = parseXmlDocument(rssXml, "rss.xml");
 const rssItems = [...rssDocument.getElementsByTagName("item")];
 if (rssItems.length !== expectedWritings.length) {
   throw new Error("Expected five RSS items.");
+}
+const rssChannel = rssDocument.getElementsByTagName("channel")[0];
+const rssSelfLinks = [
+  ...rssDocument.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "link"),
+];
+if (
+  rssChannel?.getElementsByTagName("language")[0]?.textContent !== "en-IN" ||
+  rssChannel?.getElementsByTagName("lastBuildDate")[0]?.textContent !==
+    expectedWritings[0].rssPublishedOn ||
+  rssSelfLinks.length !== 1 ||
+  rssSelfLinks.some(
+    (link) =>
+      link.getAttribute("href") !== "https://rahuly.in/rss.xml" ||
+      link.getAttribute("rel") !== "self" ||
+      link.getAttribute("type") !== "application/rss+xml",
+  )
+) {
+  throw new Error(
+    "RSS channel metadata does not match the public feed policy.",
+  );
 }
 for (const [index, item] of rssItems.entries()) {
   const expected = expectedWritings[index];
@@ -2913,9 +3251,6 @@ const sitemapLocations = [...sitemapDocument.getElementsByTagName("loc")].map(
 const expectedSitemapLocations = [
   "https://rahuly.in/",
   "https://rahuly.in/projects",
-  ...expectedProjects.map(
-    (project) => `https://rahuly.in/projects/${project.slug}`,
-  ),
   "https://rahuly.in/writings",
   ...expectedWritings.map(
     (writing) => `https://rahuly.in/writings/${writing.slug}`,
@@ -2927,6 +3262,12 @@ if (
   throw new Error(
     "The sitemap URL inventory does not match public route data.",
   );
+}
+if (
+  sitemapLocations.length !== 8 ||
+  sitemapLocations.some((location) => location.includes("/projects/"))
+) {
+  throw new Error("WIP project details must be excluded from the sitemap.");
 }
 const sitemapLastModified = [
   ...sitemapDocument.getElementsByTagName("lastmod"),
@@ -3055,6 +3396,10 @@ const forbiddenLoaderFields = [
   "order",
   "publicationStatus",
   "coverImageAssetId",
+  "socialImageAssetId",
+  "approvalId",
+  "claimId",
+  "governanceRecord",
   "wordCount",
   "rawMarkdown",
   "sourceFile",
@@ -3109,5 +3454,5 @@ for (const [relativePath, loaderData] of decodedRootData) {
 }
 
 console.log(
-  `Verified ${expectedDocuments.size} prerendered routes, ${expectedRouteData.length} route-data files, ${approvedPublicAssets.length} approved public assets, and the SPA fallback in build/client.`,
+  `Verified ${expectedDocuments.size} prerendered HTML routes, ${expectedRouteData.length} route-data files, ${expectedXml.length} XML resources, robots.txt, ${approvedPublicAssets.length} approved public media assets, and one SPA fallback in build/client.`,
 );

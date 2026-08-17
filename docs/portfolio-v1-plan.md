@@ -86,7 +86,7 @@ Complete and tag the static frontend before discussing excluded backend or deplo
 
 Milestone 2 replaced the historical Quasar/Vue application with the approved root-level React Router Framework Mode application. The production build is statically pre-rendered under `build/client`, uses npm as its package manager, and requires no runtime frontend application server. The former Vue, Quasar, Pinia, Yarn, and legacy presentation conventions are historical only and must not be restored.
 
-Milestones 3 through 7 subsequently established the validated asynchronous content repository, approved editorial-engineering design system, site shell and home content, professional experience, and the four approved WIP project records and routes. The implementation now present on `main` is authoritative where it completes those accepted milestones; the inventory and milestone descriptions below are reconciled to that state rather than treating earlier planning assumptions as current facts.
+Milestones 3 through 8 subsequently established the validated asynchronous content repository, approved editorial-engineering design system, site shell and home content, professional experience, the four approved WIP project records and routes, and the complete local writings engine with five approved published articles. The implementation now present on `main` is authoritative where it completes those accepted milestones; the inventory and milestone descriptions below are reconciled to that state rather than treating earlier planning assumptions as current facts.
 
 ## Target Frontend Architecture
 
@@ -113,9 +113,14 @@ Keep deployment-specific fallback and rewrite behavior out of frontend v1. Verif
 | `/projects/:slug` | Validated project case study | One pre-rendered route per public project slug |
 | `/writings` | Published writing index | Pre-rendered |
 | `/writings/:slug` | Published technical article | One pre-rendered route per published writing slug |
+| `/rss.xml` | Summary-only feed for the five published writings | Generated XML resource |
+| `/sitemap.xml` | Indexable canonical route inventory | Generated XML resource |
+| `/robots.txt` | Public crawl policy and sitemap discovery | Copied root text resource |
 | Not-found experience | Accessible response for unknown routes and invalid slugs | Included in static output and verified for direct navigation |
 
-Give every route one clear page-level heading, useful metadata, a canonical URL, and meaningful empty or invalid states. Make direct static-route refreshes part of browser verification.
+Give every known HTML route one clear page-level heading, useful metadata, a canonical URL, and meaningful empty or invalid states. Unknown routes and the SPA fallback are deliberate canonical exceptions: they use `noindex,follow` without a canonical URL, social URL, feed discovery, or structured data. Make direct static-route refreshes part of browser verification.
+
+The approved production inventory after Milestone 9 is exactly 12 HTML routes, 14 route-data files, two XML resources, one SPA fallback, one root `robots.txt` resource, and 20 public media assets. The sitemap contains eight URLs: home, the project index, the writings index, and five published writing details.
 
 ### Application Layers and Boundaries
 
@@ -153,7 +158,7 @@ The home page eventually includes:
 9. Skill groups.
 10. Education.
 11. Featured projects.
-12. Recent writings.
+12. Recent writings (deferred; not part of the approved frontend-v1 home implementation).
 13. Contact section.
 14. Social links.
 15. Approved résumé download.
@@ -169,7 +174,7 @@ Provide:
 - A `/projects` index.
 - A pre-rendered detail route for each approved project slug.
 - Related-project navigation where useful.
-- Project metadata and factual structured data.
+- Project metadata, with project entity structured data deferred until visible factual content and page purpose support it.
 - Approved screenshots or intentional fallback visuals when screenshots are unavailable.
 
 Support these project fields:
@@ -195,6 +200,8 @@ The approved initial project set is:
 - Universal Job Tracker — planned destination <https://jobs.rahuly.in>
 
 All four records are work in progress. Their presentation distinguishes intended direction from shipped functionality, keeps planned destinations non-interactive, and does not invent progress, users, traffic, revenue, testimonials, metrics, repositories, deployment claims, outcomes, or delivery dates.
+
+Internal project-card links labelled “View project plan” are intentionally retained so the approved WIP detail pages remain discoverable to readers and crawlers. Only the planned external application destinations remain non-interactive. While every project remains WIP, project-detail pages are self-canonical with `noindex,follow`, are excluded from the sitemap, and emit no project entity structured data.
 
 ### Writings
 
@@ -285,12 +292,12 @@ Do not silently repair factual conflicts or publish partially valid records.
 
 ### Résumé, Privacy, and Factual Accuracy
 
-Rahul will supply two résumé PDFs only during milestone 3, Validated résumé and content architecture:
+Milestone 3 received two private résumé PDFs as factual sources:
 
 - A senior backend engineer résumé.
 - A senior full-stack engineer résumé.
 
-Do not request, read, copy, or process those files before that milestone. Before any private source is placed in the repository tree, add `references/private/` to `.gitignore`. Never commit the private source résumés.
+That source-review gate is complete. The private sources and extracted review artifacts remain ignored and untracked under `references/private/`, while the specifically approved public résumé is a local public asset. Never commit or expose the private source résumés.
 
 When the sources are provided:
 
@@ -307,7 +314,7 @@ Do not place actual résumé facts or unapproved personal data in planning docum
 
 ### Asset and Profile-Photo Policy
 
-Rahul will supply a profile photograph only after the design system is approved. Do not process or select a profile image earlier. Do not use the legacy remote avatar automatically.
+Rahul supplied and approved the current profile photograph after the design-system gate. Its local responsive derivatives are approved public assets; the legacy remote avatar remains historical and must not be restored or used automatically.
 
 For every approved public image:
 
@@ -463,15 +470,19 @@ Generate SEO data from the same validated content source used for visible conten
 - Factual JSON-LD only.
 - Person or ProfilePage structured data where valid.
 - Article structured data for writings.
-- Project or CreativeWork structured data where valid.
+- Project or CreativeWork structured data only when visible factual content and page purpose support it; emit none while every project remains WIP.
 - BreadcrumbList structured data where useful.
 - `robots.txt`.
-- A sitemap containing every canonical public static route.
+- A sitemap containing indexable canonical routes. Self-canonical WIP project details remain excluded while marked `noindex,follow`.
 - RSS for published writings.
 - Direct static-route refresh support, verified separately from deployment rewrites.
 - Accessible not-found behavior.
 
 Do not add unsupported claims to structured data. Keep draft and private content out of production metadata, RSS, sitemap, and route generation.
+
+Milestone 9 uses the exact production origin `https://rahuly.in`; home retains its trailing slash and other known canonical paths do not. Query strings and fragments never enter canonical or social URLs. Open Graph uses locale `en_IN`, while HTML, structured data, and RSS use `en-IN`. Text-only Twitter `summary` cards contain no handles or image. Home emits `WebSite` and `ProfilePage` with a minimal factual `Person`; the writings index emits `CollectionPage` and its five-item `ItemList`; writing details emit factual `Article` and visible-path `BreadcrumbList` data. Unknown routes, the SPA fallback, and WIP project details receive no structured data.
+
+The social-preview image, favicon, and web manifest are deferred. Google verification, Search Console, analytics, tags, advertising, consent tooling, deployment, and DNS remain outside this milestone and frontend-v1 repository scope.
 
 ## Performance Requirements
 
@@ -667,6 +678,8 @@ Accept when:
 
 ### 8. Writings
 
+Status: complete and merged. This combined milestone includes both the former writings-engine and initial-article work; article creation is not pending Milestone 9 work.
+
 Deliver:
 
 - Local plain-Markdown ingestion behind `StaticContentRepository`, with one strict JSON-front-matter file per stable slug and no runtime Markdown parsing.
@@ -694,6 +707,10 @@ Deliver:
 - Full accessibility review and targeted remediation.
 - Image, font, JavaScript, rendering, layout-shift, and static-output optimization.
 - Production-build and direct-route inspection.
+- A typed public SEO projection and shared canonical, metadata, structured-data, and safe JSON-LD serialization helpers.
+- Text-only Open Graph and Twitter metadata, RSS discovery on indexable HTML routes, exact `robots.txt`, the eight-URL sitemap policy, and canonical exceptions for unknown output.
+- `WebSite` and `ProfilePage` data on home, `CollectionPage` with `ItemList` on the writings index, and `Article` with `BreadcrumbList` on writing details; no project entity data while projects remain WIP.
+- Preservation of the approved home, internal project-plan links, public content, route slugs, visual system, and 20-file public media inventory.
 
 Accept when:
 
@@ -702,6 +719,9 @@ Accept when:
 - All known routes and slugs generate correctly, and invalid routes remain accessible.
 - Production output contains no font CDN, remote image hotlinks, unnecessary runtime content parsing, or avoidable heavy animation code.
 - Relevant unit, integration, Playwright, axe, build, and performance checks pass.
+- The output inventory remains 12 HTML routes, 14 route-data files, two XML resources, one SPA fallback, one root `robots.txt`, and 20 public media assets; RSS has five items and the sitemap has eight URLs with article-only `lastmod` values.
+- Unknown routes and the fallback use exact `noindex,follow` without canonical, social URL, feed discovery, or structured data; WIP project details remain self-canonical `noindex,follow` pages and stay out of the sitemap.
+- Social imagery, favicon, manifest, analytics, Search Console, deployment, DNS, release, and Milestone 10 work are absent.
 
 ### 10. Final Frontend v1 Audit and Release Tag
 

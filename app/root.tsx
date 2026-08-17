@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import { SiteShell } from "./components/site-shell/site-shell";
 import { loadSiteShellData } from "./content/portfolio-route-data.server";
+import { buildNotFoundMetadata } from "./seo/metadata";
 import { THEME_BOOTSTRAP_SCRIPT, ThemeProvider } from "./theme";
 import "./app.css";
 
@@ -22,10 +23,7 @@ const DevelopmentDesignSystemPreviewGate = import.meta.env.DEV
     })
   : undefined;
 
-export const meta: Route.MetaFunction = () => [
-  { title: "Rahul Yadav | Senior Software Engineer" },
-  { name: "robots", content: "noindex" },
-];
+export const meta: Route.MetaFunction = () => buildNotFoundMetadata();
 
 export async function loader() {
   return loadSiteShellData();
@@ -33,7 +31,7 @@ export async function loader() {
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-IN" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

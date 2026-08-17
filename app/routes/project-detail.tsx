@@ -9,6 +9,7 @@ import {
 import { ProjectStatusBadge } from "../components/projects/project-status-badge";
 import { loadProjectDetailPageData } from "../content/portfolio-route-data.server";
 import { isProjectSlug } from "../domain/content";
+import { buildNotFoundMetadata, buildPageMetadata } from "../seo/metadata";
 import type { Route } from "./+types/project-detail";
 
 const workInProgressNotice =
@@ -42,26 +43,18 @@ function projectMeta(
   // matching route-data file exists, so error metadata must tolerate the
   // runtime's absent loader payload even though generated route types do not.
   if (loaderData === undefined || loaderData.kind === "not-found") {
-    return [
-      { title: "Page not found | Rahul Yadav" },
-      { name: "robots", content: "noindex,follow" },
-    ];
+    return buildNotFoundMetadata();
   }
 
   const { canonicalOrigin, project } = loaderData.data;
 
-  return [
-    { title: project.seo.title },
-    { name: "description", content: project.seo.description },
-    {
-      tagName: "link",
-      rel: "canonical",
-      href: new URL(project.seo.canonicalPath, canonicalOrigin).href,
-    },
-    ...(project.status === "wip"
-      ? [{ name: "robots", content: "noindex,follow" }]
-      : []),
-  ];
+  return buildPageMetadata({
+    canonicalOrigin,
+    seo: project.seo,
+    openGraphType: "website",
+    ...(project.status === "wip" ? { robots: "noindex,follow" } : {}),
+    discoverFeed: project.status !== "wip",
+  });
 }
 
 export const meta: Route.MetaFunction = ({ loaderData }) =>

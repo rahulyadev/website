@@ -1,6 +1,6 @@
 # rahuly.in
 
-This repository contains the root React application for the `rahuly.in` portfolio. The current public routes remain intentionally minimal while approved professional content and the approved visual foundation are integrated in their planned milestones.
+This repository contains the complete static React frontend for the `rahuly.in` portfolio through Milestone 9. It presents Rahul Yadav's approved professional profile, four internal WIP project plans, five published engineering articles, and their search-discovery resources without requiring a runtime frontend server.
 
 ## Requirements
 
@@ -49,12 +49,19 @@ The application uses React Router Framework Mode, Vite, strict TypeScript, and T
 
 ## Static output
 
-The production build is written to `build/client`. Milestone 3 pre-renders only:
+The production build is written to `build/client`. Its approved inventory is:
 
-- `/`
-- `/projects`
-- `/writings`
+- 12 pre-rendered HTML routes: `/`, `/projects`, four `/projects/:slug` routes, `/writings`, and five `/writings/:slug` routes.
+- 14 React Router route-data files.
+- Two XML resources: `/rss.xml` and `/sitemap.xml`.
+- One SPA fallback for direct navigation on a static host.
+- One root `/robots.txt` text resource.
+- Exactly 20 approved public media assets.
 
-Projects and writings remain valid empty collections until their later content milestones. Their detail patterns resolve to the accessible not-found experience because no public slugs are emitted yet. Private résumé sources and their comparison report are excluded from Git and static output; only approved, validated public projections may enter route data. Hosting and deployment configuration are intentionally excluded.
+All four project records and internal detail routes are intentionally marked WIP. Project cards retain their internal “View project plan” links, while planned external application destinations remain non-interactive. WIP details are self-canonical, use `noindex,follow`, and are excluded from the eight-URL sitemap. Unknown routes are canonical exceptions: they render the accessible not-found view with `noindex,follow` and no canonical, social URL, feed discovery, or structured data.
+
+The five approved articles are published in deterministic reverse chronology and appear in both the summary-only RSS feed and the sitemap. Recent writings on the home page are deferred; the approved home page is unchanged. A social-preview image, favicon, and web manifest are also deferred, so Open Graph and Twitter output remains factual and text-only.
+
+Private résumé sources, extracted text, and their comparison report remain ignored and untracked. Only typed public projections may enter route data or browser output. Hosting, deployment, DNS, analytics, Search Console, and other external integrations remain excluded.
 
 See [the design-system guide](docs/design-system.md) for the approved visual foundation and local component API. See [the portfolio v1 plan](docs/portfolio-v1-plan.md) for the approved architecture, milestone boundaries, and acceptance criteria.

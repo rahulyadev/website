@@ -17,6 +17,7 @@ import type {
 } from "../domain/route-data";
 import type { ContentRepository } from "./content-repository";
 import { getContentRepository } from "./content.server";
+import { projectPublicSeoMetadata } from "./public-seo.server";
 
 function projectPortrait(
   assets: readonly PublicImageAsset[],
@@ -279,7 +280,7 @@ export async function loadProjectsPageData(
 
   return {
     canonicalOrigin: collection.canonicalOrigin,
-    seo: collection.seo,
+    seo: projectPublicSeoMetadata(collection.seo),
     items: collection.items.map((project) =>
       projectCardData(project, project.plannedStack),
     ),
@@ -341,7 +342,7 @@ export async function loadProjectDetailPageData(
           ? {}
           : { disclaimer: project.disclaimer }),
         projectMark: project.projectMark,
-        seo: project.seo,
+        seo: projectPublicSeoMetadata(project.seo),
       },
       ...(previousProject === undefined ? {} : { previousProject }),
       ...(nextProject === undefined ? {} : { nextProject }),
@@ -403,7 +404,7 @@ export async function loadHomePageData(
 
   return {
     canonicalOrigin: overview.canonicalOrigin,
-    seo: overview.seo,
+    seo: projectPublicSeoMetadata(overview.seo),
     location: overview.identity.location,
     identity: {
       displayName: overview.identity.displayName,
