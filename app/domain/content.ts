@@ -195,9 +195,116 @@ export interface UnpublishedProject extends ProjectFields {
 
 export type ProjectRecord = PublishedProject | UnpublishedProject;
 
-export interface ProvisionalArticleContent {
-  readonly format: "provisional";
+export type ArticleHeadingLevel = 2 | 3 | 4;
+
+export interface ArticleTextNode {
+  readonly kind: "text";
+  readonly value: string;
+}
+
+export interface ArticleInlineCodeNode {
+  readonly kind: "inline-code";
+  readonly value: string;
+}
+
+export interface ArticleLineBreakNode {
+  readonly kind: "line-break";
+}
+
+export interface ArticleEmphasisNode {
+  readonly kind: "emphasis";
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export interface ArticleStrongNode {
+  readonly kind: "strong";
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export interface ArticleStrikethroughNode {
+  readonly kind: "strikethrough";
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export interface ArticleLinkNode {
+  readonly kind: "link";
+  readonly href: string;
+  readonly external: boolean;
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export type ArticleInlineNode =
+  | ArticleTextNode
+  | ArticleInlineCodeNode
+  | ArticleLineBreakNode
+  | ArticleEmphasisNode
+  | ArticleStrongNode
+  | ArticleStrikethroughNode
+  | ArticleLinkNode;
+
+export interface ArticleParagraphNode {
+  readonly kind: "paragraph";
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export interface ArticleHeadingNode {
+  readonly kind: "heading";
+  readonly level: ArticleHeadingLevel;
+  readonly id: string;
   readonly text: string;
+  readonly children: readonly ArticleInlineNode[];
+}
+
+export interface ArticleListNode {
+  readonly kind: "list";
+  readonly ordered: boolean;
+  readonly start?: number | undefined;
+  readonly items: readonly (readonly ArticleBlockNode[])[];
+}
+
+export interface ArticleBlockquoteNode {
+  readonly kind: "blockquote";
+  readonly children: readonly ArticleBlockNode[];
+}
+
+export interface ArticleThematicBreakNode {
+  readonly kind: "thematic-break";
+}
+
+export interface ArticleCodeBlockNode {
+  readonly kind: "code-block";
+  readonly language?: string | undefined;
+  readonly code: string;
+}
+
+export interface ArticleTableNode {
+  readonly kind: "table";
+  readonly label: string;
+  readonly headings: readonly (readonly ArticleInlineNode[])[];
+  readonly rows: readonly (readonly (readonly ArticleInlineNode[])[])[];
+}
+
+export type ArticleBlockNode =
+  | ArticleParagraphNode
+  | ArticleHeadingNode
+  | ArticleListNode
+  | ArticleBlockquoteNode
+  | ArticleThematicBreakNode
+  | ArticleCodeBlockNode
+  | ArticleTableNode;
+
+export interface ArticleTableOfContentsItem {
+  readonly id: string;
+  readonly level: 2 | 3;
+  readonly text: string;
+}
+
+export interface ArticleContent {
+  readonly format: "article-tree";
+  readonly blocks: readonly ArticleBlockNode[];
+  readonly tableOfContents: readonly ArticleTableOfContentsItem[];
+  readonly wordCount: number;
+  readonly readingTimeMinutes: number;
 }
 
 export interface WritingMetadata {
@@ -205,18 +312,18 @@ export interface WritingMetadata {
   readonly slug: Slug;
   readonly title: string;
   readonly publicationStatus: PublicationStatus;
-  readonly summary?: string | undefined;
+  readonly summary: string;
   readonly publishedOn?: FullDate | undefined;
   readonly updatedOn?: FullDate | undefined;
   readonly tags: readonly string[];
-  readonly featuredOrder?: number | undefined;
+  readonly featured: boolean;
   readonly coverImageAssetId?: StableId | undefined;
   readonly seo?: SeoMetadata | undefined;
 }
 
 export interface WritingRecord {
   readonly metadata: WritingMetadata;
-  readonly article?: ProvisionalArticleContent | undefined;
+  readonly article?: ArticleContent | undefined;
 }
 
 export interface PublishedWriting extends WritingRecord {
@@ -226,7 +333,7 @@ export interface PublishedWriting extends WritingRecord {
     readonly publishedOn: FullDate;
     readonly seo: SeoMetadata;
   };
-  readonly article: ProvisionalArticleContent;
+  readonly article: ArticleContent;
 }
 
 export interface UnpublishedWriting extends WritingRecord {

@@ -82,22 +82,11 @@ Do not add Redux, Zustand, a server-state or query cache, MDX, a CMS SDK, a netw
 
 Complete and tag the static frontend before discussing excluded backend or deployment work.
 
-## Current Legacy State and Migration Boundary
+## Current Application State and Migration Boundary
 
-The repository currently contains a Quasar/Vue application under `website/`. Its Vue, Quasar, Pinia, Yarn, routes, components, styles, tests, and build conventions are temporary. The approved target is a root-level React application created in the React foundation milestone.
+Milestone 2 replaced the historical Quasar/Vue application with the approved root-level React Router Framework Mode application. The production build is statically pre-rendered under `build/client`, uses npm as its package manager, and requires no runtime frontend application server. The former Vue, Quasar, Pinia, Yarn, and legacy presentation conventions are historical only and must not be restored.
 
-Do not treat the legacy architecture as a migration target or a compatibility contract. Until the migration is complete, run only commands that exist in the legacy repository. Its current Yarn commands are temporary and must not be described as the future canonical workflow.
-
-Do not use the legacy application as a visual-design reference. It may be inspected during a later relevant milestone only to inventory:
-
-- Potentially reusable factual content.
-- Existing links.
-- Downloadable files.
-- User-approved assets that might warrant separate review.
-
-Inventory does not imply approval. Verify facts, links, personal data, and assets before public use. Do not automatically use the existing remote avatar.
-
-Remove the legacy application only as part of the explicitly approved React migration. Do not mix unrelated content, design, deployment, backend, or résumé work into that migration.
+Milestones 3 through 7 subsequently established the validated asynchronous content repository, approved editorial-engineering design system, site shell and home content, professional experience, and the four approved WIP project records and routes. The implementation now present on `main` is authoritative where it completes those accepted milestones; the inventory and milestone descriptions below are reconciled to that state rather than treating earlier planning assumptions as current facts.
 
 ## Target Frontend Architecture
 
@@ -198,13 +187,14 @@ Support these project fields:
 - Approved screenshots with meaningful alternative text.
 - Featured state, SEO overrides, and related-project references where useful.
 
-The initial project set is:
+The approved initial project set is:
 
-- Tourney — <https://tourney.rahuly.in>
-- AssistMe — <https://assistme.rahuly.in>
-- RentIt — <https://rentit.rahuly.in>
+- Tourney — planned destination <https://tourney.rahuly.in>
+- URL Shortener — planned destination <https://go.rahuly.in>
+- Portfolio Tracker — planned destination <https://invest.rahuly.in>
+- Universal Job Tracker — planned destination <https://jobs.rahuly.in>
 
-Collect missing case-study information through a structured interview with Rahul during the projects milestone. Do not infer or invent users, traffic, revenue, testimonials, metrics, architecture, or outcomes. Validate each public link and claim before publication.
+All four records are work in progress. Their presentation distinguishes intended direction from shipped functionality, keeps planned destinations non-interactive, and does not invent progress, users, traffic, revenue, testimonials, metrics, repositories, deployment claims, outcomes, or delivery dates.
 
 ### Writings
 
@@ -214,8 +204,8 @@ Provide:
 - Production draft exclusion and reverse publication-date ordering.
 - Tags and lightweight accessible search or filtering only if it materially improves navigation.
 - Derived reading time.
-- A generated table of contents and stable heading anchors.
-- Syntax highlighting, responsive code blocks, and accessible copy-code controls.
+- A sticky, initially collapsed native table-of-contents disclosure and stable heading anchors, progressively enhanced with dismissal and focus management while remaining usable without JavaScript.
+- Safely escaped, language-labelled responsive code blocks and accessible copy-code controls without token-level syntax highlighting.
 - Responsive tables.
 - Previous and next article navigation.
 - Related internal links.
@@ -351,12 +341,15 @@ Validate this planned writing metadata:
 
 Convert Markdown into a safe, typed article representation behind `StaticContentRepository`. Sanitize or reject unsafe HTML and arbitrary executable content. Keep the body and metadata model suitable for later storage and return through `ApiContentRepository` without changing article presentation.
 
-The initial writing set is:
+The approved initial writing set is:
 
-1. An article explaining how the static portfolio was designed for a future content API.
-2. Two experience-based technical articles developed through interviews with Rahul.
+1. Phased Application Modernization Without a Big-Bang Cutover.
+2. Reducing API Payloads with Response Shaping and Compression.
+3. Replacing Mock-Heavy Tests with Database-Backed pytest Fixtures.
+4. Designing JWT Revocation and API Rate Limiting with Redis.
+5. Designing Asynchronous Document Processing with Retries, Backoff, and Dead-Letter Queues.
 
-Verify every experience-based statement. Do not publish confidential, speculative, or unverifiable material.
+Rahul approved these five experience-derived topics and authorized Codex to draft their complete initial text for editorial review. The drafts must remain generic, distinguish illustrative designs from exact production facts, and exclude customer names, internal application names, proprietary workflows, confidential infrastructure, and unapproved metrics. The previously proposed future-content-API article is explicitly rejected and is not part of frontend v1.
 
 ## Design Direction
 
@@ -662,47 +655,38 @@ Deliver:
 - Featured projects on the home page.
 - `/projects` and pre-rendered project detail routes.
 - Validated project schemas, slugs, status, problem, role, approach, architecture, decisions, stack, outcomes, links, SEO data, and related navigation.
-- Tourney, AssistMe, and RentIt case studies based on structured interviews and approved evidence.
-- Approved screenshots or intentional fallback visuals.
+- Tourney, URL Shortener, Portfolio Tracker, and Universal Job Tracker roadmap case studies based on approved public records.
+- Intentional, design-system-aligned fallback visuals while the projects remain work in progress.
 
 Accept when:
 
-- Rahul approves every public project claim, link, screenshot, architecture statement, and outcome.
+- Rahul approves every public project claim, planned destination, architecture statement, and roadmap item.
 - No users, traffic, revenue, testimonial, metric, or result is invented.
 - All public slugs pre-render and invalid slugs show the accessible not-found experience.
 - Project routes, navigation, metadata, responsive behavior, tests, axe checks, and production build pass.
 
-### 8. Writings Engine
+### 8. Writings
 
 Deliver:
 
-- Local plain-Markdown ingestion behind `StaticContentRepository`.
-- Validated writing metadata, draft exclusion, ordering, tags, reading time, table of contents, stable headings, safe code rendering, responsive tables, copy controls, related links, previous/next navigation, and invalid states.
-- Pre-rendered writing index and detail routes.
-- Article metadata, canonical integration, RSS, and sitemap integration foundations.
+- Local plain-Markdown ingestion behind `StaticContentRepository`, with one strict JSON-front-matter file per stable slug and no runtime Markdown parsing.
+- Validated writing metadata, actionable file-and-field diagnostics, deterministic draft exclusion and ordering, derived reading time, stable headings, generated tables of contents, safe typed article nodes, language-labelled code blocks, accessible copy controls, and responsive tables.
+- The five approved experience-derived articles, drafted without confidential details, unapproved metrics, invented production claims, or the rejected future-content-API topic.
+- A pre-rendered editorial `/writings` index and one pre-rendered detail route per published writing slug, including accessible empty and invalid-slug states, related links, and deterministic newer/older navigation.
+- Unique article metadata and canonical URLs, factual `Article` JSON-LD, summary-only RSS 2.0 at `/rss.xml`, and a sitemap at `/sitemap.xml` containing the validated public route inventory.
+- Structural static-output verification, focused unit and browser coverage, and responsive, theme, accessibility, no-JavaScript, print, and visual evidence.
 
 Accept when:
 
-- No MDX, arbitrary scripts, unsafe embedded components, or direct raw-Markdown imports appear in presentation or routes.
-- The model remains compatible with a future `ApiContentRepository`.
-- Invalid content, duplicate slugs, drafts, missing routes, code controls, tables, and headings have automated coverage.
-- Browser, accessibility, responsive, and production-build checks pass.
+- All five approved public Markdown records validate and publish on consecutive Mondays from 2026-07-20 through 2026-08-17, retain deterministic reverse-chronological ordering, and use the approved date-above-title index layout without a wide date rail.
+- No MDX, raw HTML, arbitrary scripts, unsafe links, embedded executable components, direct raw-Markdown imports, or unchecked storage-to-presentation assertions appear in components or routes.
+- Draft and archived records are excluded at the repository boundary and cannot reach route generation, route data, metadata, JSON-LD, RSS, sitemap, static artifacts, or browser output.
+- Index route data contains no article bodies, detail route data contains no raw Markdown or unrelated article bodies, and public projections exclude source paths, hashes, approval IDs, governance metadata, and storage-only fields.
+- Published writing routes, direct refreshes, the accessible unknown-slug `noindex,follow` experience, copy controls, tables, headings, feeds, static artifacts, and existing routes have automated coverage.
+- Focused type, lint, format, unit, build, static, Playwright, axe, keyboard, responsive, theme, forced-colors, reduced-motion, no-JavaScript, 200% text, overflow, and print checks pass before visual review.
+- Rahul reviews and approves the complete editorial text and visual evidence before the full-suite approval gate, commit, push, or draft pull request.
 
-### 9. Initial Writings Content
-
-Deliver:
-
-1. An article explaining how the static portfolio was designed for a future content API.
-2. Two experience-based technical articles developed through interviews with Rahul.
-
-Accept when:
-
-- Rahul approves topics, factual claims, technical detail, links, and publication status.
-- Confidential, speculative, and unverifiable material is excluded.
-- Metadata, article structure, internal links, code samples, and media pass validation and editorial review.
-- Published articles appear in static routes, RSS, sitemap, and relevant navigation; drafts do not.
-
-### 10. SEO, Accessibility and Performance Hardening
+### 9. SEO, Accessibility and Performance Hardening
 
 Deliver:
 
@@ -719,7 +703,7 @@ Accept when:
 - Production output contains no font CDN, remote image hotlinks, unnecessary runtime content parsing, or avoidable heavy animation code.
 - Relevant unit, integration, Playwright, axe, build, and performance checks pass.
 
-### 11. Final Frontend v1 Audit and Release Tag
+### 10. Final Frontend v1 Audit and Release Tag
 
 Deliver:
 

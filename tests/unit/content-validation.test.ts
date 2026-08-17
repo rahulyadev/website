@@ -104,7 +104,15 @@ describe("content validation", () => {
       "portfolio-tracker",
       "universal-job-tracker",
     ]);
-    expect(productionSnapshot.writings).toEqual([]);
+    expect(
+      productionSnapshot.writings.map((writing) => writing.metadata.slug),
+    ).toEqual([
+      "async-document-processing-retries-dlq",
+      "database-backed-pytest-fixtures",
+      "jwt-revocation-rate-limiting-redis",
+      "phased-application-modernization",
+      "reducing-api-payloads",
+    ]);
     expect(productionSnapshot.site.resumeAssets).toHaveLength(1);
     expect(productionSnapshot.site.resumeAssets[0]).toMatchObject({
       publicationStatus: "published",

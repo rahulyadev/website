@@ -25,6 +25,7 @@
 .compact-identity {
   display: inline-flex;
   min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: var(--space-3);
   width: fit-content;
@@ -208,7 +209,7 @@
   color: var(--color-accent-strong);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 64rem) {
   .site-header__inner {
     grid-template-columns: minmax(15rem, 1fr) auto;
   }

@@ -280,7 +280,7 @@ export function createValidContentFixture() {
           publishedOn: "2024-02-29",
           updatedOn: "2024-03-01",
           tags: ["testing"],
-          featuredOrder: 10,
+          featured: true,
           coverImageAssetId: "image-social",
           seo: {
             title: "Published writing | Example Engineer",
@@ -288,7 +288,18 @@ export function createValidContentFixture() {
             canonicalPath: "/writings/published-writing",
           },
         },
-        article: { format: "provisional", text: "Example article content." },
+        article: {
+          format: "article-tree",
+          blocks: [
+            {
+              kind: "paragraph",
+              children: [{ kind: "text", value: "Example article content." }],
+            },
+          ],
+          tableOfContents: [],
+          wordCount: 3,
+          readingTimeMinutes: 1,
+        },
       },
       {
         metadata: {
@@ -296,8 +307,9 @@ export function createValidContentFixture() {
           slug: "draft-writing",
           title: "Draft writing",
           publicationStatus: "draft",
-          tags: [],
-          featuredOrder: 30,
+          summary: "A draft writing record.",
+          tags: ["draft"],
+          featured: false,
         },
       },
       {
@@ -306,7 +318,9 @@ export function createValidContentFixture() {
           slug: "archived-writing",
           title: "Archived writing",
           publicationStatus: "archived",
-          tags: [],
+          summary: "An archived writing record.",
+          tags: ["archive"],
+          featured: false,
         },
       },
     ],

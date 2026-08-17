@@ -123,7 +123,6 @@ function hasPublishedWritingFields(
 ): writing is PublishedWriting {
   return (
     writing.metadata.publicationStatus === "published" &&
-    writing.metadata.summary !== undefined &&
     writing.metadata.publishedOn !== undefined &&
     writing.metadata.seo !== undefined &&
     writing.article !== undefined
@@ -491,14 +490,6 @@ function validateCrossRecordRules(
     (project) => project.id,
     (project) => project.order,
   );
-  checkOrders(
-    source.writings,
-    "Writing",
-    "writings.featured",
-    (writing) => writing.metadata.id,
-    (writing) => writing.metadata.featuredOrder,
-  );
-
   source.projects.forEach((project, projectIndex) => {
     checkOrders(
       project.plannedCapabilities,
@@ -899,8 +890,9 @@ function validateCrossRecordRules(
       );
     }
 
+    const normalizedTags = metadata.tags.map((tag) => tag.toLocaleLowerCase());
     checkUniqueReferences(
-      metadata.tags,
+      normalizedTags,
       "Writing",
       metadata.id,
       `writings.${String(writingIndex)}.metadata.tags`,

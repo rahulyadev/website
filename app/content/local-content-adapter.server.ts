@@ -5,16 +5,15 @@ import type {
 import { professionalContent } from "./public/professional-content.server";
 import { projectsContent } from "./public/projects-content.server";
 import { siteContent } from "./public/site-content.server";
-import { writingsContent } from "./public/writings-content.server";
 import type { BuildAssetManifestEntry } from "./content-schemas.server";
 import { validateContent } from "./validate-content.server";
+import { loadWritingSources } from "./writing-sources.server";
 
 const localContent = {
   site: siteContent,
   professional: professionalContent,
   projects: projectsContent,
-  writings: writingsContent,
-} satisfies LocalContentSource;
+} satisfies Omit<LocalContentSource, "writings">;
 
 // Governance fields belong to this build-only manifest, never to public records.
 const buildAssetManifest = [
@@ -280,7 +279,8 @@ export interface ValidatedLocalContentAdapter {
 }
 
 export class LocalContentAdapter implements ValidatedLocalContentAdapter {
-  load() {
-    return Promise.resolve(validateContent(localContent, buildAssetManifest));
+  async load() {
+    const writings = await loadWritingSources();
+    return validateContent({ ...localContent, writings }, buildAssetManifest);
   }
 }

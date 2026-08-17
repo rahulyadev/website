@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { TextDecoder } from "node:util";
+import { JSDOM } from "jsdom";
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -186,10 +187,6 @@ function hasMetaToken(html, metaName, token) {
   });
 }
 
-function readDocumentTitle(html) {
-  return html.match(/<title(?:\s[^>]*)?>([\s\S]*?)<\/title>/i)?.[1].trim();
-}
-
 function decodeBasicHtmlEntities(value) {
   return value
     .replaceAll("&amp;", "&")
@@ -223,17 +220,6 @@ function readAnchors(html) {
     href: readQuotedAttribute(tag, "href"),
     text: readableElementText(tag),
   }));
-}
-
-function readCanonicalHrefs(html) {
-  return [...html.matchAll(/<link\b[^>]*>/gi)]
-    .filter(([tag]) =>
-      readQuotedAttribute(tag, "rel")
-        ?.split(/\s+/)
-        .some((value) => value.toLowerCase() === "canonical"),
-    )
-    .map(([tag]) => readQuotedAttribute(tag, "href"))
-    .filter((href) => href !== undefined);
 }
 
 function isRecord(value) {
@@ -389,7 +375,12 @@ const flattenedDataSentinels = new Map([
   [-7, "undefined"],
 ]);
 
-function decodeRouteLoaderData(contents, relativePath, routeId) {
+function decodeRouteLoaderData(
+  contents,
+  relativePath,
+  routeId,
+  requireObject = true,
+) {
   let flattened;
 
   try {
@@ -485,9 +476,9 @@ function decodeRouteLoaderData(contents, relativePath, routeId) {
   const routeEntry = isRecord(root) ? root[routeId] : undefined;
   const loaderData = isRecord(routeEntry) ? routeEntry["data"] : undefined;
 
-  if (!isRecord(loaderData)) {
+  if (loaderData === undefined || (requireObject && !isRecord(loaderData))) {
     throw new Error(
-      `Expected object loader data for ${routeId} in ${relativePath}.`,
+      `Expected ${requireObject ? "object " : ""}loader data for ${routeId} in ${relativePath}.`,
     );
   }
 
@@ -558,6 +549,40 @@ function findUnpublishedPath(value, pathLabel = "data", seen) {
   return undefined;
 }
 
+const expectedWritings = [
+  {
+    slug: "async-document-processing-retries-dlq",
+    title:
+      "Designing Asynchronous Document Processing with Retries, Backoff, and Dead-Letter Queues",
+    publishedOn: "2026-08-17",
+    rssPublishedOn: "Mon, 17 Aug 2026 00:00:00 GMT",
+  },
+  {
+    slug: "database-backed-pytest-fixtures",
+    title: "Replacing Mock-Heavy Tests with Database-Backed pytest Fixtures",
+    publishedOn: "2026-08-10",
+    rssPublishedOn: "Mon, 10 Aug 2026 00:00:00 GMT",
+  },
+  {
+    slug: "jwt-revocation-rate-limiting-redis",
+    title: "Designing JWT Revocation and API Rate Limiting with Redis",
+    publishedOn: "2026-08-03",
+    rssPublishedOn: "Mon, 03 Aug 2026 00:00:00 GMT",
+  },
+  {
+    slug: "phased-application-modernization",
+    title: "Phased Application Modernization Without a Big-Bang Cutover",
+    publishedOn: "2026-07-27",
+    rssPublishedOn: "Mon, 27 Jul 2026 00:00:00 GMT",
+  },
+  {
+    slug: "reducing-api-payloads",
+    title: "Reducing API Payloads with Response Shaping and Compression",
+    publishedOn: "2026-07-20",
+    rssPublishedOn: "Mon, 20 Jul 2026 00:00:00 GMT",
+  },
+];
+
 const expectedDocuments = new Map([
   [
     "index.html",
@@ -622,6 +647,15 @@ const expectedDocuments = new Map([
       indexable: false,
     },
   ],
+  ...expectedWritings.map(({ slug, title }) => [
+    `writings/${slug}/index.html`,
+    {
+      title: `${title} | Rahul Yadav`,
+      heading: title,
+      canonical: `https://rahuly.in/writings/${slug}`,
+      indexable: true,
+    },
+  ]),
 ]);
 
 async function listGeneratedEntries(directory) {
@@ -979,8 +1013,11 @@ const expectedRouteData = [
   "projects/tourney.data",
   "projects/universal-job-tracker.data",
   "projects/url-shortener.data",
+  "rss.xml.data",
+  "sitemap.xml.data",
   "writings.data",
-];
+  ...expectedWritings.map(({ slug }) => `writings/${slug}.data`),
+].sort();
 
 if (JSON.stringify(generatedHtml) !== JSON.stringify(expectedHtml)) {
   throw new Error(
@@ -994,9 +1031,21 @@ if (JSON.stringify(generatedRouteData) !== JSON.stringify(expectedRouteData)) {
   );
 }
 
+const generatedXml = generatedFiles
+  .filter((file) => normalizedExtension(file) === ".xml")
+  .map(relativeGeneratedPath)
+  .sort();
+const expectedXml = ["rss.xml", "sitemap.xml"];
+if (JSON.stringify(generatedXml) !== JSON.stringify(expectedXml)) {
+  throw new Error(
+    `Unexpected generated XML inventory. Expected ${expectedXml.join(", ")}; received ${generatedXml.join(", ")}.`,
+  );
+}
+
 for (const [relativePath, expected] of expectedDocuments) {
   const html = await requireNonEmptyFile(relativePath);
-  const actualTitle = readDocumentTitle(html);
+  const document = new JSDOM(html).window.document;
+  const actualTitle = document.title;
 
   if (actualTitle !== expected.title) {
     throw new Error(
@@ -1004,7 +1053,9 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  const levelOneHeadings = readHeadingTexts(html, 1);
+  const levelOneHeadings = [...document.querySelectorAll("h1")].map(
+    (heading) => heading.textContent?.replaceAll(/\s+/g, " ").trim() ?? "",
+  );
   if (
     levelOneHeadings.length !== 1 ||
     levelOneHeadings[0] !== expected.heading
@@ -1014,15 +1065,28 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  const canonicalHrefs = readCanonicalHrefs(html);
+  const canonicalHrefs = [
+    ...document.querySelectorAll('link[rel~="canonical"]'),
+  ]
+    .map((link) => link.getAttribute("href"))
+    .filter((href) => href !== null);
   if (canonicalHrefs.length !== 1 || canonicalHrefs[0] !== expected.canonical) {
     throw new Error(
       `Expected one canonical URL of ${expected.canonical} in ${relativePath}; received ${canonicalHrefs.length === 0 ? "none" : canonicalHrefs.join(", ")}.`,
     );
   }
 
-  const hasNoindex = hasMetaToken(html, "robots", "noindex");
-  const hasFollow = hasMetaToken(html, "robots", "follow");
+  const robotsTokens = new Set(
+    (
+      document.querySelector('meta[name="robots"]')?.getAttribute("content") ??
+      ""
+    )
+      .toLocaleLowerCase()
+      .split(/[\s,]+/)
+      .filter(Boolean),
+  );
+  const hasNoindex = robotsTokens.has("noindex");
+  const hasFollow = robotsTokens.has("follow");
   if (expected.indexable && hasNoindex) {
     throw new Error(
       `Expected ${relativePath} to remain indexable, but found a robots directive containing noindex.`,
@@ -1034,10 +1098,13 @@ for (const [relativePath, expected] of expectedDocuments) {
     );
   }
 
-  const assetReferences = [
-    ...html.matchAll(/(?:href|src)="(\/assets\/[^"?#]+)["?#]/g),
-    ...html.matchAll(/(?:href|src)="(\/assets\/[^"]+)"/g),
-  ].map((match) => match[1]);
+  const assetReferences = [...document.querySelectorAll("[href], [src]")]
+    .flatMap((element) => [
+      element.getAttribute("href"),
+      element.getAttribute("src"),
+    ])
+    .filter((reference) => reference?.startsWith("/assets/") === true)
+    .map((reference) => reference.split(/[?#]/, 1)[0]);
 
   if (assetReferences.length === 0) {
     throw new Error(`Expected generated asset references in ${relativePath}.`);
@@ -1331,6 +1398,10 @@ const serverOnlyMarkers = [
   "site-content.server",
   "professional-content.server",
   "projects-content.server",
+  "writing-sources.server",
+  "writing-markdown.server",
+  "content/writings",
+  "markdown-it",
   "claim-sopra-modernization",
   "experience-sopra-steria",
 ];
@@ -1395,12 +1466,46 @@ const decodedRouteData = new Map([
       "routes/writings",
     ),
   ],
+  ...expectedWritings.map(({ slug }) => {
+    const relativePath = `writings/${slug}.data`;
+    return [
+      relativePath,
+      decodeRouteLoaderData(
+        routeData.get(relativePath) ?? "",
+        relativePath,
+        "routes/writing-detail",
+      ),
+    ];
+  }),
+  [
+    "rss.xml.data",
+    decodeRouteLoaderData(
+      routeData.get("rss.xml.data") ?? "",
+      "rss.xml.data",
+      "routes/rss",
+      false,
+    ),
+  ],
+  [
+    "sitemap.xml.data",
+    decodeRouteLoaderData(
+      routeData.get("sitemap.xml.data") ?? "",
+      "sitemap.xml.data",
+      "routes/sitemap",
+      false,
+    ),
+  ],
 ]);
 const decodedRootData = new Map(
-  [...routeData.entries()].map(([relativePath, contents]) => [
-    relativePath,
-    decodeRouteLoaderData(contents, relativePath, "root"),
-  ]),
+  [...routeData.entries()]
+    .filter(
+      ([relativePath]) =>
+        relativePath !== "rss.xml.data" && relativePath !== "sitemap.xml.data",
+    )
+    .map(([relativePath, contents]) => [
+      relativePath,
+      decodeRouteLoaderData(contents, relativePath, "root"),
+    ]),
 );
 const expectedSeoByRouteData = new Map([
   [
@@ -1426,7 +1531,7 @@ const expectedSeoByRouteData = new Map([
     {
       canonicalPath: "/writings",
       description:
-        "Published technical writings will be added in a later portfolio milestone.",
+        "Engineering notes on backend systems, application modernization, testing, and the decisions behind maintainable software.",
       title: "Writings | Rahul Yadav",
     },
   ],
@@ -2197,9 +2302,641 @@ assertSeoContract(
 );
 if (
   !Array.isArray(writingsData["items"]) ||
-  writingsData["items"].length !== 0
+  writingsData["items"].length !== expectedWritings.length
 ) {
-  throw new Error("Expected the writing collection to remain empty.");
+  throw new Error("Expected five published summary-only writing records.");
+}
+
+const writingIndexBySlug = new Map();
+for (const [index, expected] of expectedWritings.entries()) {
+  const item = writingsData["items"][index];
+  assertExactRecordFields(
+    item,
+    ["publishedOn", "readingTimeMinutes", "slug", "summary", "tags", "title"],
+    "writings.data",
+    `writing index item ${String(index)}`,
+  );
+  if (
+    item["slug"] !== expected.slug ||
+    item["title"] !== expected.title ||
+    item["publishedOn"] !== expected.publishedOn ||
+    !Number.isInteger(item["readingTimeMinutes"]) ||
+    item["readingTimeMinutes"] < 1
+  ) {
+    throw new Error(
+      `Unexpected public writing index projection for ${expected.slug}.`,
+    );
+  }
+  assertNonEmptyTrimmedString(
+    item["summary"],
+    "writings.data",
+    `items.${String(index)}.summary`,
+  );
+  if (
+    !Array.isArray(item["tags"]) ||
+    item["tags"].length < 1 ||
+    item["tags"].length > 5 ||
+    new Set(item["tags"].map((tag) => tag.toLocaleLowerCase())).size !==
+      item["tags"].length
+  ) {
+    throw new Error(`Unexpected tags for writing ${expected.slug}.`);
+  }
+  for (const [tagIndex, tag] of item["tags"].entries()) {
+    assertNonEmptyTrimmedString(
+      tag,
+      "writings.data",
+      `items.${String(index)}.tags.${String(tagIndex)}`,
+    );
+  }
+  writingIndexBySlug.set(expected.slug, item);
+}
+
+function verifyArticleInlineNodes(nodes, relativePath, fieldPath) {
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    throw new Error(
+      `Expected non-empty inline nodes at ${fieldPath} in ${relativePath}.`,
+    );
+  }
+
+  for (const [index, node] of nodes.entries()) {
+    const nodePath = `${fieldPath}.${String(index)}`;
+    if (!isRecord(node) || typeof node["kind"] !== "string") {
+      throw new Error(
+        `Expected an inline node at ${nodePath} in ${relativePath}.`,
+      );
+    }
+    switch (node["kind"]) {
+      case "text":
+      case "inline-code":
+        assertExactRecordFields(
+          node,
+          ["kind", "value"],
+          relativePath,
+          nodePath,
+        );
+        if (typeof node["value"] !== "string" || node["value"].length === 0) {
+          throw new Error(`Expected visible inline text at ${nodePath}.`);
+        }
+        break;
+      case "line-break":
+        assertExactRecordFields(node, ["kind"], relativePath, nodePath);
+        break;
+      case "emphasis":
+      case "strong":
+      case "strikethrough":
+        assertExactRecordFields(
+          node,
+          ["children", "kind"],
+          relativePath,
+          nodePath,
+        );
+        verifyArticleInlineNodes(
+          node["children"],
+          relativePath,
+          `${nodePath}.children`,
+        );
+        break;
+      case "link":
+        assertExactRecordFields(
+          node,
+          ["children", "external", "href", "kind"],
+          relativePath,
+          nodePath,
+        );
+        if (
+          typeof node["href"] !== "string" ||
+          typeof node["external"] !== "boolean" ||
+          !(
+            node["href"].startsWith("https://") ||
+            node["href"].startsWith("/") ||
+            node["href"].startsWith("#")
+          )
+        ) {
+          throw new Error(`Unsafe public article link at ${nodePath}.`);
+        }
+        verifyArticleInlineNodes(
+          node["children"],
+          relativePath,
+          `${nodePath}.children`,
+        );
+        break;
+      default:
+        throw new Error(
+          `Unexpected inline node kind ${String(node["kind"])} at ${nodePath}.`,
+        );
+    }
+  }
+}
+
+function verifyArticleBlocks(blocks, relativePath, fieldPath, stats) {
+  if (!Array.isArray(blocks) || blocks.length === 0) {
+    throw new Error(`Expected non-empty article blocks at ${fieldPath}.`);
+  }
+
+  for (const [index, block] of blocks.entries()) {
+    const blockPath = `${fieldPath}.${String(index)}`;
+    if (!isRecord(block) || typeof block["kind"] !== "string") {
+      throw new Error(`Expected an article block at ${blockPath}.`);
+    }
+    switch (block["kind"]) {
+      case "paragraph":
+        assertExactRecordFields(
+          block,
+          ["children", "kind"],
+          relativePath,
+          blockPath,
+        );
+        verifyArticleInlineNodes(
+          block["children"],
+          relativePath,
+          `${blockPath}.children`,
+        );
+        break;
+      case "heading":
+        assertExactRecordFields(
+          block,
+          ["children", "id", "kind", "level", "text"],
+          relativePath,
+          blockPath,
+        );
+        if (
+          ![2, 3, 4].includes(block["level"]) ||
+          typeof block["id"] !== "string" ||
+          typeof block["text"] !== "string"
+        ) {
+          throw new Error(`Unexpected article heading at ${blockPath}.`);
+        }
+        stats.headingIds.add(block["id"]);
+        verifyArticleInlineNodes(
+          block["children"],
+          relativePath,
+          `${blockPath}.children`,
+        );
+        break;
+      case "list":
+        assertExactRecordFields(
+          block,
+          block["start"] === undefined
+            ? ["items", "kind", "ordered"]
+            : ["items", "kind", "ordered", "start"],
+          relativePath,
+          blockPath,
+        );
+        if (!Array.isArray(block["items"]) || block["items"].length === 0) {
+          throw new Error(`Expected list items at ${blockPath}.`);
+        }
+        for (const [itemIndex, item] of block["items"].entries()) {
+          verifyArticleBlocks(
+            item,
+            relativePath,
+            `${blockPath}.items.${String(itemIndex)}`,
+            stats,
+          );
+        }
+        break;
+      case "blockquote":
+        assertExactRecordFields(
+          block,
+          ["children", "kind"],
+          relativePath,
+          blockPath,
+        );
+        verifyArticleBlocks(
+          block["children"],
+          relativePath,
+          `${blockPath}.children`,
+          stats,
+        );
+        break;
+      case "thematic-break":
+        assertExactRecordFields(block, ["kind"], relativePath, blockPath);
+        break;
+      case "code-block":
+        assertExactRecordFields(
+          block,
+          block["language"] === undefined
+            ? ["code", "kind"]
+            : ["code", "kind", "language"],
+          relativePath,
+          blockPath,
+        );
+        if (typeof block["code"] !== "string" || block["code"].length === 0) {
+          throw new Error(`Expected escaped code data at ${blockPath}.`);
+        }
+        stats.codeBlocks += 1;
+        break;
+      case "table":
+        assertExactRecordFields(
+          block,
+          ["headings", "kind", "label", "rows"],
+          relativePath,
+          blockPath,
+        );
+        if (
+          !Array.isArray(block["headings"]) ||
+          block["headings"].length === 0 ||
+          !Array.isArray(block["rows"])
+        ) {
+          throw new Error(`Expected semantic table data at ${blockPath}.`);
+        }
+        for (const [cellIndex, cell] of block["headings"].entries()) {
+          verifyArticleInlineNodes(
+            cell,
+            relativePath,
+            `${blockPath}.headings.${String(cellIndex)}`,
+          );
+        }
+        for (const [rowIndex, row] of block["rows"].entries()) {
+          if (!Array.isArray(row) || row.length !== block["headings"].length) {
+            throw new Error(
+              `Unexpected table row at ${blockPath}.rows.${String(rowIndex)}.`,
+            );
+          }
+          for (const [cellIndex, cell] of row.entries()) {
+            verifyArticleInlineNodes(
+              cell,
+              relativePath,
+              `${blockPath}.rows.${String(rowIndex)}.${String(cellIndex)}`,
+            );
+          }
+        }
+        stats.tables += 1;
+        break;
+      default:
+        throw new Error(
+          `Unexpected article block kind ${String(block["kind"])} at ${blockPath}.`,
+        );
+    }
+  }
+}
+
+for (const [index, expected] of expectedWritings.entries()) {
+  const relativePath = `writings/${expected.slug}.data`;
+  const loaderData = decodedRouteData.get(relativePath);
+  assertExactRecordFields(
+    loaderData,
+    ["data", "kind"],
+    relativePath,
+    "writing detail lookup",
+  );
+  if (loaderData["kind"] !== "found") {
+    throw new Error(`Expected a found writing lookup in ${relativePath}.`);
+  }
+
+  const detail = loaderData["data"];
+  const detailFields = ["canonicalOrigin", "relatedWritings", "writing"];
+  if (index > 0) detailFields.push("newerWriting");
+  if (index < expectedWritings.length - 1) detailFields.push("olderWriting");
+  assertExactRecordFields(
+    detail,
+    detailFields,
+    relativePath,
+    "writing detail data",
+  );
+  if (detail["canonicalOrigin"] !== "https://rahuly.in") {
+    throw new Error(`Unexpected canonical origin in ${relativePath}.`);
+  }
+
+  const writing = detail["writing"];
+  const indexItem = writingIndexBySlug.get(expected.slug);
+  assertExactRecordFields(
+    writing,
+    [
+      "article",
+      "publishedOn",
+      "readingTimeMinutes",
+      "seo",
+      "slug",
+      "summary",
+      "tags",
+      "title",
+    ],
+    relativePath,
+    "writing detail",
+  );
+  if (
+    writing["slug"] !== expected.slug ||
+    writing["title"] !== expected.title ||
+    writing["summary"] !== indexItem["summary"] ||
+    writing["publishedOn"] !== indexItem["publishedOn"] ||
+    writing["readingTimeMinutes"] !== indexItem["readingTimeMinutes"] ||
+    JSON.stringify(writing["tags"]) !== JSON.stringify(indexItem["tags"])
+  ) {
+    throw new Error(
+      `Writing detail diverges from index data in ${relativePath}.`,
+    );
+  }
+  assertSeoContract(
+    writing["seo"],
+    {
+      canonicalPath: `/writings/${expected.slug}`,
+      description: indexItem["summary"],
+      title: `${expected.title} | Rahul Yadav`,
+    },
+    relativePath,
+  );
+
+  assertExactRecordFields(
+    writing["article"],
+    ["blocks", "tableOfContents"],
+    relativePath,
+    "public article tree",
+  );
+  const stats = { codeBlocks: 0, tables: 0, headingIds: new Set() };
+  verifyArticleBlocks(
+    writing["article"]["blocks"],
+    relativePath,
+    "data.writing.article.blocks",
+    stats,
+  );
+  if (stats.codeBlocks < 1) {
+    throw new Error(`Expected at least one code block in ${relativePath}.`);
+  }
+  if (
+    !Array.isArray(writing["article"]["tableOfContents"]) ||
+    writing["article"]["tableOfContents"].length < 3
+  ) {
+    throw new Error(
+      `Expected generated table-of-contents data in ${relativePath}.`,
+    );
+  }
+  for (const [tocIndex, item] of writing["article"][
+    "tableOfContents"
+  ].entries()) {
+    assertExactRecordFields(
+      item,
+      ["id", "level", "text"],
+      relativePath,
+      `table-of-contents item ${String(tocIndex)}`,
+    );
+    if (!stats.headingIds.has(item["id"]) || ![2, 3].includes(item["level"])) {
+      throw new Error(
+        `Table-of-contents item does not match a heading in ${relativePath}.`,
+      );
+    }
+  }
+
+  if (!Array.isArray(detail["relatedWritings"])) {
+    throw new Error(`Expected related-writing links in ${relativePath}.`);
+  }
+  for (const sibling of [
+    ...detail["relatedWritings"],
+    detail["newerWriting"],
+    detail["olderWriting"],
+  ].filter((value) => value !== undefined)) {
+    assertExactRecordFields(
+      sibling,
+      ["path", "title"],
+      relativePath,
+      "writing sibling",
+    );
+    if (
+      !expectedWritings.some(
+        (candidate) =>
+          sibling["path"] === `/writings/${candidate.slug}` &&
+          sibling["title"] === candidate.title,
+      )
+    ) {
+      throw new Error(`Unexpected related writing in ${relativePath}.`);
+    }
+  }
+}
+
+const writingsDocument = new JSDOM(
+  await requireNonEmptyFile("writings/index.html"),
+).window.document;
+if (
+  writingsDocument.querySelector(".writings-page__eyebrow")?.textContent !==
+    "ENGINEERING NOTES" ||
+  writingsDocument.querySelector(".writings-page__introduction")
+    ?.textContent !==
+    "Notes on backend systems, application modernization, testing, and the engineering decisions behind maintainable software."
+) {
+  throw new Error("The writings index is missing its approved editorial copy.");
+}
+const writingRows = [...writingsDocument.querySelectorAll(".writing-row")];
+if (writingRows.length !== expectedWritings.length) {
+  throw new Error("The writings index DOM does not contain five article rows.");
+}
+for (const [index, row] of writingRows.entries()) {
+  const expected = expectedWritings[index];
+  const routeItem = writingIndexBySlug.get(expected.slug);
+  const link = row.querySelector("h2 a");
+  const body = row.querySelector(":scope > .writing-row__body");
+  const date = body?.querySelector(":scope > time:first-child");
+  const tags = [...row.querySelectorAll(".writing-row__meta li")].map(
+    (tag) => tag.textContent,
+  );
+  if (
+    link?.textContent !== expected.title ||
+    link.getAttribute("href") !== `/writings/${expected.slug}` ||
+    row.querySelector(".writing-row__summary")?.textContent !==
+      routeItem["summary"] ||
+    body === null ||
+    date?.getAttribute("datetime") !== expected.publishedOn ||
+    date?.nextElementSibling?.tagName !== "H2" ||
+    JSON.stringify(tags) !== JSON.stringify(routeItem["tags"])
+  ) {
+    throw new Error(
+      `The writings index row for ${expected.slug} diverges from route data.`,
+    );
+  }
+}
+
+for (const expected of expectedWritings) {
+  const relativePath = `writings/${expected.slug}/index.html`;
+  const document = new JSDOM(await requireNonEmptyFile(relativePath)).window
+    .document;
+  const routeItem = writingIndexBySlug.get(expected.slug);
+  const article = document.querySelector("article.writing-detail");
+  const prose = document.querySelector(".article-prose");
+  const toc = document.querySelector("details.article-toc");
+  const jsonLdScripts = [
+    ...document.querySelectorAll('script[type="application/ld+json"]'),
+  ];
+  if (article === null || prose === null) {
+    throw new Error(`Expected semantic article markup in ${relativePath}.`);
+  }
+  if (prose.querySelector("script, style, iframe, img") !== null) {
+    throw new Error(`Found forbidden embedded content in ${relativePath}.`);
+  }
+  if (
+    toc === null ||
+    toc.hasAttribute("open") ||
+    toc.querySelector(":scope > summary")?.textContent?.trim() !==
+      "On this page" ||
+    toc.querySelector(':scope > nav[aria-label="On this page"]') === null
+  ) {
+    throw new Error(
+      `Expected an initially collapsed native table-of-contents disclosure in ${relativePath}.`,
+    );
+  }
+  if (
+    document.querySelectorAll(".article-code").length < 1 ||
+    document.querySelectorAll(".article-code pre code").length < 1 ||
+    document.querySelectorAll(".article-code__copy").length !== 0
+  ) {
+    throw new Error(
+      `Expected escaped no-JavaScript code blocks without copy controls in ${relativePath}.`,
+    );
+  }
+  const headingIds = [...prose.querySelectorAll("h2[id], h3[id], h4[id]")].map(
+    (heading) => heading.id,
+  );
+  if (
+    headingIds.length < 3 ||
+    new Set(headingIds).size !== headingIds.length ||
+    [...document.querySelectorAll(".article-toc a")].some(
+      (link) => !headingIds.includes(link.getAttribute("href")?.slice(1) ?? ""),
+    )
+  ) {
+    throw new Error(
+      `Heading IDs or table-of-contents links are invalid in ${relativePath}.`,
+    );
+  }
+  if (
+    jsonLdScripts.length !== 1 ||
+    document
+      .querySelector('meta[property="og:type"]')
+      ?.getAttribute("content") !== "article" ||
+    document
+      .querySelector('meta[property="article:published_time"]')
+      ?.getAttribute("content") !== expected.publishedOn ||
+    document
+      .querySelector('link[rel="alternate"][type="application/rss+xml"]')
+      ?.getAttribute("href") !== "https://rahuly.in/rss.xml"
+  ) {
+    throw new Error(`Article metadata is incomplete in ${relativePath}.`);
+  }
+  const jsonLd = JSON.parse(jsonLdScripts[0].textContent ?? "");
+  assertExactRecordFields(
+    jsonLd,
+    [
+      "@context",
+      "@type",
+      "author",
+      "datePublished",
+      "description",
+      "headline",
+      "inLanguage",
+      "keywords",
+      "mainEntityOfPage",
+    ],
+    relativePath,
+    "Article JSON-LD",
+  );
+  if (
+    jsonLd["@context"] !== "https://schema.org" ||
+    jsonLd["@type"] !== "Article" ||
+    jsonLd["headline"] !== expected.title ||
+    jsonLd["description"] !== routeItem["summary"] ||
+    jsonLd["datePublished"] !== expected.publishedOn ||
+    jsonLd["mainEntityOfPage"] !==
+      `https://rahuly.in/writings/${expected.slug}` ||
+    jsonLd["inLanguage"] !== "en-IN" ||
+    JSON.stringify(jsonLd["keywords"]) !== JSON.stringify(routeItem["tags"])
+  ) {
+    throw new Error(
+      `Article JSON-LD diverges from visible route data in ${relativePath}.`,
+    );
+  }
+  assertExactRecordFields(
+    jsonLd["author"],
+    ["@type", "name", "url"],
+    relativePath,
+    "Article author JSON-LD",
+  );
+}
+
+function parseXmlDocument(xml, relativePath) {
+  try {
+    return new JSDOM(xml, { contentType: "text/xml" }).window.document;
+  } catch (error) {
+    throw new Error(`Could not parse ${relativePath} as XML.`, {
+      cause: error,
+    });
+  }
+}
+
+const rssXml = await requireNonEmptyFile("rss.xml");
+const sitemapXml = await requireNonEmptyFile("sitemap.xml");
+if (decodedRouteData.get("rss.xml.data") !== rssXml) {
+  throw new Error("rss.xml differs from its generated resource route data.");
+}
+if (decodedRouteData.get("sitemap.xml.data") !== sitemapXml) {
+  throw new Error(
+    "sitemap.xml differs from its generated resource route data.",
+  );
+}
+
+const rssDocument = parseXmlDocument(rssXml, "rss.xml");
+const rssItems = [...rssDocument.getElementsByTagName("item")];
+if (rssItems.length !== expectedWritings.length) {
+  throw new Error("Expected five RSS items.");
+}
+for (const [index, item] of rssItems.entries()) {
+  const expected = expectedWritings[index];
+  const routeItem = writingIndexBySlug.get(expected.slug);
+  const text = (tagName) => item.getElementsByTagName(tagName)[0]?.textContent;
+  const url = `https://rahuly.in/writings/${expected.slug}`;
+  if (
+    text("title") !== expected.title ||
+    text("link") !== url ||
+    text("guid") !== url ||
+    text("description") !== routeItem["summary"] ||
+    text("pubDate") !== expected.rssPublishedOn ||
+    item.getElementsByTagName("guid")[0]?.getAttribute("isPermaLink") !==
+      "true" ||
+    JSON.stringify(
+      [...item.getElementsByTagName("category")].map(
+        (category) => category.textContent,
+      ),
+    ) !== JSON.stringify(routeItem["tags"])
+  ) {
+    throw new Error(
+      `RSS item ${expected.slug} diverges from index route data.`,
+    );
+  }
+  if (
+    [...item.children].some(
+      (child) => child.localName === "encoded" || child.localName === "content",
+    )
+  ) {
+    throw new Error(`RSS item ${expected.slug} contains a full article body.`);
+  }
+}
+
+const sitemapDocument = parseXmlDocument(sitemapXml, "sitemap.xml");
+const sitemapLocations = [...sitemapDocument.getElementsByTagName("loc")].map(
+  (location) => location.textContent,
+);
+const expectedSitemapLocations = [
+  "https://rahuly.in/",
+  "https://rahuly.in/projects",
+  ...expectedProjects.map(
+    (project) => `https://rahuly.in/projects/${project.slug}`,
+  ),
+  "https://rahuly.in/writings",
+  ...expectedWritings.map(
+    (writing) => `https://rahuly.in/writings/${writing.slug}`,
+  ),
+];
+if (
+  JSON.stringify(sitemapLocations) !== JSON.stringify(expectedSitemapLocations)
+) {
+  throw new Error(
+    "The sitemap URL inventory does not match public route data.",
+  );
+}
+const sitemapLastModified = [
+  ...sitemapDocument.getElementsByTagName("lastmod"),
+].map((lastmod) => lastmod.textContent);
+if (
+  sitemapLastModified.length !== expectedWritings.length ||
+  JSON.stringify(sitemapLastModified) !==
+    JSON.stringify(expectedWritings.map((writing) => writing.publishedOn))
+) {
+  throw new Error("Expected article-only sitemap lastmod values.");
 }
 
 for (const [index, expected] of expectedProjects.entries()) {
@@ -2315,8 +3052,12 @@ for (const [relativePath, loaderData] of decodedRouteData) {
 
 const forbiddenLoaderFields = [
   "credibilityHighlights",
-  "id",
   "order",
+  "publicationStatus",
+  "coverImageAssetId",
+  "wordCount",
+  "rawMarkdown",
+  "sourceFile",
   "assetId",
   "sourcePath",
   "sha256",

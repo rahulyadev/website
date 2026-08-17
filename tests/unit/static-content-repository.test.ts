@@ -204,7 +204,6 @@ describe("StaticContentRepository", () => {
     setAtPath(newerWriting, ["metadata", "title"], "Newer writing");
     setAtPath(newerWriting, ["metadata", "publishedOn"], "2025-01-01");
     setAtPath(newerWriting, ["metadata", "updatedOn"], "2025-01-01");
-    setAtPath(newerWriting, ["metadata", "featuredOrder"], 20);
     setAtPath(
       newerWriting,
       ["metadata", "seo", "canonicalPath"],
