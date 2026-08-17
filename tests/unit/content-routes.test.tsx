@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRoutesStub } from "react-router";
 import { describe, expect, it, vi } from "vitest";
@@ -7,6 +7,9 @@ import App, { loader as rootLoader } from "../../app/root";
 import Home, { loader as homeLoader } from "../../app/routes/home";
 import Projects, { loader as projectsLoader } from "../../app/routes/projects";
 import Writings, { loader as writingsLoader } from "../../app/routes/writings";
+
+const approvedAboutCopy =
+  "I build backend systems with Python, FastAPI, Django/DRF, PostgreSQL, Redis, and AWS, focusing on API design and migration, authentication and authorization, caching, performance, and testing. For end-to-end delivery, I work with JavaScript, React, Redux, Vue.js, Nuxt.js, Quasar, and HTML/CSS to integrate interfaces with backend services and carry features from design through release. I also contribute to technical decisions, code reviews, and delivery across teams. I spent more than two years building and modernizing enterprise SaaS products at Gainfront and now contribute to an Airbus customer engagement at Sopra Steria.";
 
 const ContentRoutes = createRoutesStub([
   {
@@ -32,24 +35,28 @@ describe("content routes", () => {
     expect(Object.keys(data).sort()).toEqual([
       "canonicalOrigin",
       "contacts",
-      "credibilityHighlights",
+      "credibilityCards",
+      "education",
+      "experiences",
       "identity",
       "location",
       "portrait",
       "resume",
       "seo",
+      "skillGroups",
       "socialLinks",
     ]);
     expect(data.identity.displayName).toBe("Rahul Yadav");
-    expect(data.location).toBe("Bangalore, Mumbai, India");
+    expect(data.location).toBe("Bengaluru, Mumbai - India");
     expect(data.identity.professionalPositioning).toMatch(
       /Python backends.*React and Vue/i,
     );
+    expect(data.identity.introduction).toBe(approvedAboutCopy);
     expect(data.seo.canonicalPath).toBe("/");
     expect(data.canonicalOrigin).toBe("https://rahuly.in");
-    expect(data).not.toHaveProperty("experiences");
-    expect(data).not.toHaveProperty("skillGroups");
-    expect(data).not.toHaveProperty("education");
+    expect(data.experiences).toHaveLength(3);
+    expect(data.skillGroups).toHaveLength(6);
+    expect(data.education).toHaveLength(1);
     expect(data).not.toHaveProperty("featuredProjects");
     expect(data).not.toHaveProperty("recentWritings");
     expect(data).not.toHaveProperty("resumeAsset");
@@ -57,6 +64,217 @@ describe("content routes", () => {
     expect(JSON.stringify(data)).not.toContain("sourcePath");
     expect(JSON.stringify(data)).not.toContain("sha256");
     expect(JSON.stringify(data)).not.toContain("supportingClaimIds");
+    expect(JSON.stringify(data)).not.toContain("claim-");
+  });
+
+  it("renders semantic professional sections, native disclosure, and resilient logo identity", async () => {
+    const user = userEvent.setup();
+    renderRoute("/");
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Experience" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Skills" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Education" }),
+    ).toBeVisible();
+    expect(screen.getByText(approvedAboutCopy)).toBeVisible();
+
+    const credibilityItems = document.querySelectorAll(
+      ".credibility-list > .credibility-list__item",
+    );
+    expect(credibilityItems).toHaveLength(3);
+    expect(credibilityItems[2]).toHaveClass("credibility-list__item--outcomes");
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Phased application modernization",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Greenfield product delivery",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Leadership and measurable outcomes",
+      }),
+    ).toBeVisible();
+    expect(
+      document.querySelectorAll(".credibility-list__outcomes > li"),
+    ).toHaveLength(3);
+
+    for (const sectionId of [
+      "about",
+      "credibility",
+      "experience",
+      "skills",
+      "education",
+      "contact",
+    ]) {
+      const section = document.getElementById(sectionId);
+      expect(section).not.toBeNull();
+      const inner = section?.firstElementChild;
+      expect(inner).toHaveClass("home-section__inner");
+      expect(section?.children).toHaveLength(1);
+      const headingBlock = inner?.children[0];
+      const sectionContent = inner?.children[1];
+      expect(headingBlock).toHaveClass("ui-section-heading");
+      expect(sectionContent).toBeDefined();
+      expect(inner?.firstElementChild).toBe(headingBlock);
+      expect(headingBlock?.nextElementSibling).toBe(sectionContent);
+    }
+    expect(
+      screen.getByRole("list", {
+        name: "Professional experience in reverse chronological order",
+      }).tagName,
+    ).toBe("OL");
+    const sopraHeading = screen.getByRole("heading", {
+      level: 3,
+      name: "Sopra Steria",
+    });
+    const sopraRole = screen.getByRole("heading", {
+      level: 4,
+      name: "Senior Software Engineer",
+    });
+    expect(sopraHeading).toBeVisible();
+    expect(sopraRole).toBeVisible();
+    expect(sopraHeading.parentElement).toHaveClass(
+      "experience-entry__identity-copy",
+    );
+    expect(sopraRole.parentElement).toHaveClass("experience-role__title-row");
+    expect(sopraHeading.nextElementSibling).toBe(sopraRole.parentElement);
+    expect(
+      sopraHeading.compareDocumentPosition(sopraRole) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(sopraHeading.closest(".experience-entry__header")).toContainElement(
+      sopraRole,
+    );
+    const featuredIndicators = screen.getAllByRole("img", {
+      name: "Featured experience",
+    });
+    expect(featuredIndicators).toHaveLength(2);
+    for (const indicator of featuredIndicators) {
+      expect(indicator).toHaveAttribute("tabindex", "0");
+      expect(indicator.querySelector("svg")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
+      expect(within(indicator).getByRole("tooltip")).toHaveTextContent(
+        "Featured experience",
+      );
+    }
+    const sopraFeatured = featuredIndicators[0];
+    if (sopraFeatured === undefined) {
+      throw new Error("Missing Sopra Steria featured indicator.");
+    }
+    expect(sopraRole.parentElement).toContainElement(sopraFeatured);
+    const marsHeading = screen.getByRole("heading", {
+      level: 3,
+      name: "MarsDevs",
+    });
+    expect(
+      marsHeading
+        .closest(".experience-entry")
+        ?.querySelector(".experience-entry__featured"),
+    ).toBeNull();
+    expect(
+      document.querySelectorAll(".experience-role__dates time"),
+    ).toHaveLength(3);
+    expect(screen.getByText("Customer engagement:")).toBeVisible();
+    expect(screen.getByText("Airbus")).toBeVisible();
+    expect(
+      screen.getByText("AWS ALB listener-rule URL rewrite transforms"),
+    ).toHaveProperty("tagName", "STRONG");
+    expect(screen.getByText("4 greenfield modules")).toHaveProperty(
+      "tagName",
+      "STRONG",
+    );
+    expect(screen.getByText("35%")).toHaveProperty("tagName", "STRONG");
+
+    const disclosures = screen.getAllByText(/Show \d+ more contributions/);
+    expect(disclosures).toHaveLength(2);
+    const firstDetails = disclosures[0]?.closest("details");
+    expect(firstDetails).not.toBeNull();
+    expect(firstDetails).not.toHaveAttribute("open");
+    if (disclosures[0] !== undefined) await user.click(disclosures[0]);
+    expect(firstDetails).toHaveAttribute("open");
+
+    const skillItems = [
+      ...document.querySelectorAll<HTMLLIElement>(
+        ".skill-group > ul.skill-group__skills > li",
+      ),
+    ];
+    expect(skillItems).toHaveLength(44);
+    expect(new Set(skillItems.map((item) => item.textContent))).toHaveProperty(
+      "size",
+      44,
+    );
+    for (const group of document.querySelectorAll(".skill-group")) {
+      expect(group.querySelector("ul.skill-group__skills")).not.toBeNull();
+      expect(
+        group.querySelector(".skill-group__icon")?.getAttribute("aria-hidden"),
+      ).toBe("true");
+    }
+    expect(screen.queryByText("PHP", { exact: true })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Bachelor of Engineering in Computer Engineering",
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("University of Mumbai")).toBeVisible();
+    expect(screen.getByText(/2016–2020/)).toHaveTextContent("CGPA 8.74/10");
+    expect(screen.getByText("Bengaluru, Mumbai - India")).toBeVisible();
+
+    const organizationImages = document.querySelectorAll<HTMLImageElement>(
+      ".organization-logo img",
+    );
+    expect(organizationImages).toHaveLength(4);
+    for (const image of organizationImages)
+      expect(image).toHaveAttribute("alt", "");
+    const sopraLogo = organizationImages[0];
+    if (sopraLogo === undefined) throw new Error("Missing Sopra Steria logo.");
+    fireEvent.error(sopraLogo);
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Sopra Steria" }),
+    ).toBeVisible();
+
+    const contactLabels = [
+      ...document.querySelectorAll(".contact-actions__row > dt"),
+    ].map((label) => label.textContent);
+    expect(contactLabels).toEqual(["Email", "Phone", "Profiles", "Location"]);
+    expect(
+      document.querySelector(".contact-actions__profile-row")?.textContent,
+    ).toContain("Download resume");
+
+    for (const platform of ["GitHub", "LinkedIn"]) {
+      const link = screen.getByRole("link", {
+        name: `${platform} (opens in a new tab)`,
+      });
+      expect(link).toHaveClass("contact-actions__social-link");
+      expect(link.querySelector(".contact-actions__social-icon svg")).not.toBe(
+        null,
+      );
+      expect(
+        link.querySelector(".contact-actions__social-tooltip"),
+      ).toHaveTextContent(platform);
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+    const footerMessage = document.querySelector(".site-footer__message");
+    expect(footerMessage).toBeVisible();
+    expect(footerMessage).toHaveTextContent(
+      "Made with ❤️ in India · Thank you for visiting.",
+    );
+    expect(document.querySelector(".site-footer__identity")).toBeNull();
+    expect(screen.getByRole("img", { name: "love" })).toBeVisible();
   });
 
   it("obtains a smaller root shell projection for every route", async () => {

@@ -310,10 +310,17 @@ const socialLinkSchema = z.object({
   order: positiveOrderSchema,
 }) satisfies z.ZodType<SocialLink>;
 
+const customerEngagementSchema = z.object({
+  relationship: z.literal("customer"),
+  organization: nonemptyTextSchema,
+});
+
 const experienceRoleSchema = z.object({
   id: stableIdSchema,
   title: nonemptyTextSchema,
   dates: dateRangeSchema,
+  location: nonemptyTextSchema,
+  engagement: customerEngagementSchema.optional(),
   summary: nonemptyTextSchema,
   responsibilities: z.array(orderedStatementSchema).readonly(),
   technologyIds: z.array(stableIdSchema).readonly(),
@@ -323,6 +330,7 @@ const experienceRoleSchema = z.object({
 const experienceSchema = z.object({
   id: stableIdSchema,
   organization: nonemptyTextSchema,
+  logoAssetId: stableIdSchema,
   roles: z.array(experienceRoleSchema).min(1).readonly(),
   order: positiveOrderSchema,
   featured: z.boolean(),
@@ -348,6 +356,14 @@ const orderedSkillReferenceSchema = z.object({
 
 const skillGroupSchema = z.object({
   id: stableIdSchema,
+  category: z.enum([
+    "languages",
+    "backend",
+    "frontend",
+    "data",
+    "cloud",
+    "tooling",
+  ]),
   name: nonemptyTextSchema,
   skills: z.array(orderedSkillReferenceSchema).min(1).readonly(),
   order: positiveOrderSchema,
@@ -356,11 +372,11 @@ const skillGroupSchema = z.object({
 const educationSchema = z.object({
   id: stableIdSchema,
   institution: nonemptyTextSchema,
-  affiliation: nonemptyTextSchema,
   credential: nonemptyTextSchema,
   fieldOfStudy: nonemptyTextSchema,
   dates: dateRangeSchema,
   score: nonemptyTextSchema.optional(),
+  logoAssetId: stableIdSchema,
   order: positiveOrderSchema,
 }) satisfies z.ZodType<Education>;
 
@@ -532,7 +548,7 @@ export const localContentSourceSchema = z.object({
   writings: z.array(writingRecordSchema).readonly(),
 }) satisfies z.ZodType<LocalContentSource>;
 
-export const buildAssetManifestEntrySchema = z.object({
+const baseBuildAssetManifestEntrySchema = z.object({
   assetId: stableIdSchema,
   sourcePath: nonemptyTextSchema,
   sha256: assetHashSchema,
@@ -543,6 +559,45 @@ export const buildAssetManifestEntrySchema = z.object({
   linkValidationVerified: z.boolean().optional(),
   approvedOn: fullDateSchema,
 });
+
+const organizationLogoManifestEntrySchema =
+  baseBuildAssetManifestEntrySchema.extend({
+    originalFilename: nonemptyTextSchema.refine(
+      (name) => !name.includes("/") && !name.includes("\\"),
+      "must be a filename without path separators",
+    ),
+    intakeMediaType: publicImageMediaTypeSchema,
+    intakeWidth: z.number().int().positive(),
+    intakeHeight: z.number().int().positive(),
+    intakeByteSize: z.number().int().positive(),
+    intakeSha256: assetHashSchema,
+    publicDerivativePath: internalPathSchema.refine(
+      (path) => path.startsWith("/assets/organizations/"),
+      "must be a local organization asset path",
+    ),
+    publicDerivativeMediaType: publicImageMediaTypeSchema,
+    publicDerivativeWidth: z.number().int().positive(),
+    publicDerivativeHeight: z.number().int().positive(),
+    publicDerivativeByteSize: z.number().int().positive(),
+    publicDerivativeSha256: assetHashSchema,
+    metadataInspection: z.object({
+      decoderVerified: z.literal(true),
+      frameCount: z.literal(1),
+      metadataPresentAtIntake: z.boolean(),
+      metadataRemovalRequired: z.boolean(),
+      pixelEquivalenceVerified: z.literal(true),
+      trailingPayloadBytes: z.literal(0),
+    }),
+    intendedUse: z.enum([
+      "experience-employer-logo",
+      "education-institution-logo",
+    ]),
+  });
+
+export const buildAssetManifestEntrySchema = z.union([
+  organizationLogoManifestEntrySchema.strict(),
+  baseBuildAssetManifestEntrySchema.strict(),
+]);
 
 export type BuildAssetManifestEntry = z.output<
   typeof buildAssetManifestEntrySchema

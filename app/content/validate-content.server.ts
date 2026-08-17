@@ -435,6 +435,46 @@ function validateCrossRecordRules(
     (experience) => experience.id,
     (experience) => experience.order,
   );
+  const orderedExperiences = [...source.professional.experiences].sort(
+    (left, right) => left.order - right.order,
+  );
+  orderedExperiences.forEach((experience, index) => {
+    const previous = orderedExperiences[index - 1];
+    if (previous === undefined) return;
+
+    const latestStart = (candidate: (typeof orderedExperiences)[number]) =>
+      [...candidate.roles]
+        .map((role) => role.dates.start)
+        .sort((left, right) => right.localeCompare(left))[0] ?? "";
+
+    if (latestStart(previous).localeCompare(latestStart(experience)) < 0) {
+      add(
+        "Experience",
+        experience.id,
+        `professional.experiences.${String(index)}.order`,
+        "must preserve reverse-chronological employer ordering",
+      );
+    }
+  });
+  source.professional.experiences.forEach((experience, experienceIndex) => {
+    const orderedRoles = [...experience.roles].sort(
+      (left, right) => left.order - right.order,
+    );
+    orderedRoles.forEach((role, roleIndex) => {
+      const previous = orderedRoles[roleIndex - 1];
+      if (
+        previous !== undefined &&
+        previous.dates.start.localeCompare(role.dates.start) < 0
+      ) {
+        add(
+          "ExperienceRole",
+          role.id,
+          `professional.experiences.${String(experienceIndex)}.roles.${String(roleIndex)}.order`,
+          "must preserve reverse-chronological role ordering",
+        );
+      }
+    });
+  });
   checkOrders(
     source.professional.credibilityHighlights,
     "CredibilityHighlight",
@@ -676,7 +716,21 @@ function validateCrossRecordRules(
     });
   });
 
+  const skillCategoryOwners = new Map<string, string>();
+  const skillReferenceCounts = new Map<string, number>();
   source.professional.skillGroups.forEach((group, groupIndex) => {
+    const categoryOwner = skillCategoryOwners.get(group.category);
+    if (categoryOwner !== undefined) {
+      add(
+        "SkillGroup",
+        group.id,
+        `professional.skillGroups.${String(groupIndex)}.category`,
+        `duplicates category already used by ${categoryOwner}`,
+      );
+    } else {
+      skillCategoryOwners.set(group.category, group.id);
+    }
+
     const references = group.skills.map((reference) => reference.skillId);
     checkUniqueReferences(
       references,
@@ -685,6 +739,10 @@ function validateCrossRecordRules(
       `professional.skillGroups.${String(groupIndex)}.skills`,
     );
     group.skills.forEach((reference, referenceIndex) => {
+      skillReferenceCounts.set(
+        reference.skillId,
+        (skillReferenceCounts.get(reference.skillId) ?? 0) + 1,
+      );
       if (!skillIds.has(reference.skillId)) {
         add(
           "SkillGroup",
@@ -694,6 +752,19 @@ function validateCrossRecordRules(
         );
       }
     });
+  });
+  source.professional.skills.forEach((skill, skillIndex) => {
+    const referenceCount = skillReferenceCounts.get(skill.id) ?? 0;
+    if (referenceCount !== 1) {
+      add(
+        "Skill",
+        skill.id,
+        `professional.skills.${String(skillIndex)}.id`,
+        referenceCount === 0
+          ? "must appear in exactly one public skill group"
+          : "appears in more than one public skill group",
+      );
+    }
   });
 
   source.professional.credibilityHighlights.forEach(
@@ -945,6 +1016,105 @@ function validateCrossRecordRules(
         "does not correspond to a public asset record",
       );
     }
+  });
+
+  const checkOrganizationLogoReference = (
+    assetId: string,
+    expectedUse: "experience-employer-logo" | "education-institution-logo",
+    recordType: "Experience" | "Education",
+    recordId: string,
+    fieldPath: string,
+  ) => {
+    const asset = imageById.get(assetId);
+    const manifest = manifestByAssetId.get(assetId);
+
+    if (asset === undefined) {
+      add(recordType, recordId, fieldPath, "references an unknown logo asset");
+      return;
+    }
+    if (asset.publicationStatus !== "published") {
+      add(
+        recordType,
+        recordId,
+        fieldPath,
+        "references a logo asset that is not published",
+      );
+    }
+    if (
+      !asset.path.startsWith("/assets/organizations/") ||
+      !asset.decorative ||
+      asset.altText !== ""
+    ) {
+      add(
+        recordType,
+        recordId,
+        fieldPath,
+        "organization logos must be decorative assets beneath /assets/organizations/",
+      );
+    }
+    if (manifest === undefined || !("intendedUse" in manifest)) {
+      add(
+        recordType,
+        recordId,
+        fieldPath,
+        "logo is missing its organization asset governance record",
+      );
+      return;
+    }
+    if (manifest.intendedUse !== expectedUse) {
+      add(
+        recordType,
+        recordId,
+        fieldPath,
+        `logo is governed for ${manifest.intendedUse} instead of ${expectedUse}`,
+      );
+    }
+    if (
+      manifest.sourcePath !== `chat-attachment:${manifest.originalFilename}` ||
+      manifest.publicDerivativePath !== asset.path ||
+      manifest.publicDerivativeMediaType !== asset.mediaType ||
+      manifest.publicDerivativeWidth !== asset.width ||
+      manifest.publicDerivativeHeight !== asset.height ||
+      manifest.publicDerivativeByteSize !== manifest.byteSize ||
+      manifest.publicDerivativeSha256 !== manifest.sha256
+    ) {
+      add(
+        "BuildAssetManifest",
+        assetId,
+        fieldPath,
+        "organization logo governance does not match its public derivative",
+      );
+    }
+    if (
+      manifest.metadataInspection.metadataPresentAtIntake !==
+      manifest.metadataInspection.metadataRemovalRequired
+    ) {
+      add(
+        "BuildAssetManifest",
+        assetId,
+        fieldPath,
+        "metadata-removal evidence is inconsistent with intake inspection",
+      );
+    }
+  };
+
+  source.professional.experiences.forEach((experience, experienceIndex) => {
+    checkOrganizationLogoReference(
+      experience.logoAssetId,
+      "experience-employer-logo",
+      "Experience",
+      experience.id,
+      `professional.experiences.${String(experienceIndex)}.logoAssetId`,
+    );
+  });
+  source.professional.education.forEach((education, educationIndex) => {
+    checkOrganizationLogoReference(
+      education.logoAssetId,
+      "education-institution-logo",
+      "Education",
+      education.id,
+      `professional.education.${String(educationIndex)}.logoAssetId`,
+    );
   });
 
   [...source.site.resumeAssets, ...source.site.images].forEach(

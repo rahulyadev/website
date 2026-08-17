@@ -96,7 +96,7 @@ test("home shell, active navigation, and compact identity follow route and scrol
   await page
     .getByRole("heading", {
       level: 2,
-      name: "Backend depth, full-stack delivery",
+      name: "Experience",
     })
     .scrollIntoViewIfNeeded();
   await expect(compactIdentity).toHaveAttribute("data-visible", "true");
@@ -126,9 +126,10 @@ test("hero uses portrait-left desktop composition and portrait-first mobile comp
   const desktopPortrait = await portraitFrame.boundingBox();
   const desktopCopy = await heroCopy.boundingBox();
   expect(desktopPortrait?.x).toBeLessThan(desktopCopy?.x ?? 0);
-  expect(desktopPortrait?.height).toBeGreaterThan(
-    desktopPortrait?.width ?? Number.POSITIVE_INFINITY,
-  );
+  expect(
+    Math.abs((desktopPortrait?.width ?? 0) - (desktopPortrait?.height ?? 0)),
+  ).toBeLessThan(0.01);
+  await expect(portraitFrame).toHaveCSS("border-radius", "50%");
 
   for (const action of await page.locator(".home-hero__actions a").all()) {
     await expectMinimumTarget(action);
@@ -139,7 +140,7 @@ test("hero uses portrait-left desktop composition and portrait-first mobile comp
   await page
     .getByRole("heading", {
       level: 2,
-      name: "Backend depth, full-stack delivery",
+      name: "Experience",
     })
     .scrollIntoViewIfNeeded();
   const compactImage = page.locator(".compact-identity__image");
@@ -201,7 +202,7 @@ test("hero uses portrait-left desktop composition and portrait-first mobile comp
   expect(mobileLayout.portrait.width).toBeLessThanOrEqual(192);
   await expect(portraitFrame).toHaveCSS("border-radius", "50%");
 
-  await page.setViewportSize({ width: 320, height: 640 });
+  await page.setViewportSize({ width: 640, height: 800 });
   await page.goto("/");
   await expectHeroNameOnOneLine(page);
   await page.evaluate(() => {
@@ -210,7 +211,7 @@ test("hero uses portrait-left desktop composition and portrait-first mobile comp
   await expectHeroNameOnOneLine(page, 36);
 });
 
-test("body prose is justified and social icons align with their labels", async ({
+test("body prose is justified and social icons align within their controls", async ({
   page,
 }) => {
   const runtimeProblems: string[] = [];
@@ -242,11 +243,15 @@ test("body prose is justified and social icons align with their labels", async (
       ".home-about__copy p",
       ".home-credibility .ui-section-heading__description p",
       ".credibility-list__detail",
+      ".credibility-list__outcomes li",
       ".home-contact .ui-section-heading__description p",
     ]) {
       const paragraphs = page.locator(selector);
       for (const paragraph of await paragraphs.all()) {
-        await expect(paragraph).toHaveCSS("text-align", "justify");
+        await expect(paragraph).toHaveCSS(
+          "text-align",
+          viewport.width <= 416 ? "left" : "justify",
+        );
       }
     }
 
@@ -261,25 +266,26 @@ test("body prose is justified and social icons align with their labels", async (
         const icon = element.querySelector<HTMLElement>(
           ".contact-actions__social-icon",
         );
-        const label = element.querySelector<HTMLElement>(
-          ".contact-actions__social-label",
-        );
-        if (icon === null || label === null) return undefined;
+        if (icon === null) return undefined;
+        const linkRect = element.getBoundingClientRect();
         const iconRect = icon.getBoundingClientRect();
-        const labelRect = label.getBoundingClientRect();
         return {
           centerDifference: Math.abs(
             iconRect.top +
               iconRect.height / 2 -
-              (labelRect.top + labelRect.height / 2),
+              (linkRect.top + linkRect.height / 2),
           ),
           display: getComputedStyle(element).display,
+          height: linkRect.height,
           iconLineHeight: getComputedStyle(icon).lineHeight,
+          width: linkRect.width,
         };
       });
-      expect(alignment?.display).toBe("inline-flex");
+      expect(alignment?.display).toBe("grid");
       expect(alignment?.iconLineHeight).toBe("0px");
       expect(alignment?.centerDifference).toBeLessThanOrEqual(0.5);
+      expect(alignment?.width).toBeGreaterThanOrEqual(44);
+      expect(alignment?.height).toBeGreaterThanOrEqual(44);
     }
   }
 
@@ -290,6 +296,7 @@ test("body prose is justified and social icons align with their labels", async (
     ".home-about__copy p",
     ".home-credibility .ui-section-heading__description p",
     ".credibility-list__detail",
+    ".credibility-list__outcomes li",
     ".home-contact .ui-section-heading__description p",
   ]) {
     const paragraphs = page.locator(selector);
@@ -476,7 +483,7 @@ test("contact details, compact actions, outbound links, and approved resume work
   await expect(
     page.getByRole("button", { name: /show phone number/i }),
   ).toHaveCount(0);
-  await expect(page.getByText("Bangalore, Mumbai, India")).toBeVisible();
+  await expect(page.getByText("Bengaluru, Mumbai - India")).toBeVisible();
 
   for (const platform of ["GitHub", "LinkedIn"]) {
     const link = page.getByRole("link", {
@@ -508,7 +515,7 @@ test("contact details, compact actions, outbound links, and approved resume work
   expect(createHash("sha256").update(bytes).digest("hex")).toBe(resumeSha256);
 });
 
-test("credibility case notes stay a cohesive rule-separated list at every width", async ({
+test("credibility display uses two concise cards and one full-width outcomes card", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -518,46 +525,71 @@ test("credibility case notes stay a cohesive rule-separated list at every width"
     .scrollIntoViewIfNeeded();
 
   const notes = page.locator(".credibility-list > li");
-  await expect(notes).toHaveCount(5);
-  await expect(notes.locator(".credibility-list__lead")).toHaveCount(5);
-  await expect(notes.locator(".credibility-list__detail")).toHaveCount(5);
+  await expect(notes).toHaveCount(3);
+  await expect(notes.locator(".credibility-list__title")).toHaveCount(3);
+  await expect(notes.locator(".credibility-list__detail")).toHaveCount(2);
+  await expect(notes.locator(".credibility-list__outcomes")).toHaveCount(1);
   await expect(
-    page.getByText(
-      "Helped raise backend test coverage by ~45 percentage points (~40% to ~85%).",
-      { exact: true },
-    ),
+    page.getByRole("heading", {
+      level: 3,
+      name: "Leadership and measurable outcomes",
+    }),
   ).toBeVisible();
 
-  const editorialStyles = await page.evaluate(() => {
+  const cardGeometry = await page.evaluate(() => {
     const list = document.querySelector<HTMLElement>(".credibility-list");
-    const item = document.querySelector<HTMLElement>(".credibility-list > li");
-    if (list === null || item === null) return undefined;
+    const items = Array.from(
+      document.querySelectorAll<HTMLElement>(".credibility-list > li"),
+    );
+    const [first, second, third] = items;
+    if (
+      list === null ||
+      first === undefined ||
+      second === undefined ||
+      third === undefined ||
+      items.length !== 3
+    ) {
+      return undefined;
+    }
     const listStyle = getComputedStyle(list);
-    const itemStyle = getComputedStyle(item);
+    const firstRect = first.getBoundingClientRect();
+    const secondRect = second.getBoundingClientRect();
+    const thirdRect = third.getBoundingClientRect();
     return {
       columns: listStyle.gridTemplateColumns.split(" ").length,
-      itemBackground: itemStyle.backgroundColor,
-      itemBorderLeft: itemStyle.borderLeftWidth,
-      itemBorderRight: itemStyle.borderRightWidth,
-      itemBoxShadow: itemStyle.boxShadow,
-      ruleStyle: itemStyle.borderBottomStyle,
+      firstTop: firstRect.top,
+      secondTop: secondRect.top,
+      thirdTop: thirdRect.top,
+      listLeft: list.getBoundingClientRect().left,
+      listRight: list.getBoundingClientRect().right,
+      thirdLeft: thirdRect.left,
+      thirdRight: thirdRect.right,
     };
   });
-  expect(editorialStyles).toEqual({
-    columns: 1,
-    itemBackground: "rgba(0, 0, 0, 0)",
-    itemBorderLeft: "0px",
-    itemBorderRight: "0px",
-    itemBoxShadow: "none",
-    ruleStyle: "solid",
-  });
-  await expect(page.locator(".home-credibility .ui-card")).toHaveCount(0);
+  expect(cardGeometry?.columns).toBe(2);
+  expect(cardGeometry?.firstTop).toBeCloseTo(cardGeometry?.secondTop ?? 0, 1);
+  expect(cardGeometry?.thirdTop).toBeGreaterThan(cardGeometry?.firstTop ?? 0);
+  expect(cardGeometry?.thirdLeft).toBeCloseTo(cardGeometry?.listLeft ?? 0, 1);
+  expect(cardGeometry?.thirdRight).toBeCloseTo(cardGeometry?.listRight ?? 0, 1);
 
   await page.setViewportSize({ width: 320, height: 640 });
   await page.goto("/");
   await page
     .getByRole("heading", { level: 2, name: "Evidence over adjectives" })
     .scrollIntoViewIfNeeded();
+  const mobileTops = await notes.evaluateAll((items) =>
+    items.map((item) => item.getBoundingClientRect().top),
+  );
+  const [firstTop, secondTop, thirdTop] = mobileTops;
+  if (
+    firstTop === undefined ||
+    secondTop === undefined ||
+    thirdTop === undefined
+  ) {
+    throw new Error("Expected three stacked credibility cards.");
+  }
+  expect(firstTop).toBeLessThan(secondTop);
+  expect(secondTop).toBeLessThan(thirdTop);
   await expectNoHorizontalOverflow(page);
 });
 

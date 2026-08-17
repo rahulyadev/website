@@ -57,7 +57,7 @@ function SiteShellFrame({ data, homeRoute }: SiteShellFrameProps) {
           <Outlet />
         </Container>
       </main>
-      <SiteFooter identity={data.identity} />
+      <SiteFooter />
     </SiteShellContext.Provider>
   );
 }

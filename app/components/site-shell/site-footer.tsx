@@ -3,14 +3,7 @@ import { NavLink } from "react-router";
 
 import { Container } from "../ui";
 
-interface SiteFooterProps {
-  identity: {
-    readonly displayName: string;
-    readonly roleLabel: string;
-  };
-}
-
-export function SiteFooter({ identity }: SiteFooterProps) {
+export function SiteFooter() {
   const backToTop = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
       event.button !== 0 ||
@@ -40,10 +33,6 @@ export function SiteFooter({ identity }: SiteFooterProps) {
   return (
     <footer className="site-footer">
       <Container className="site-footer__inner" width="wide">
-        <p className="site-footer__identity">
-          <span>{identity.displayName}</span>
-          <span>{identity.roleLabel}</span>
-        </p>
         <nav aria-label="Footer">
           <ul className="site-footer__navigation">
             <li>
@@ -64,6 +53,13 @@ export function SiteFooter({ identity }: SiteFooterProps) {
             </li>
           </ul>
         </nav>
+        <p className="site-footer__message">
+          Made with{" "}
+          <span aria-label="love" role="img">
+            ❤️
+          </span>{" "}
+          in India · Thank you for visiting.
+        </p>
       </Container>
     </footer>
   );

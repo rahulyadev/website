@@ -123,6 +123,34 @@ const approvedPublicAssets = [
     width: 192,
     height: 240,
   },
+  {
+    path: "assets/organizations/sopra-steria.jpeg",
+    byteSize: 6_816,
+    sha256: "884da523bb0662c22c08770ad7d82c6ecb4cd69e189f6c03ea2324e8da45aae1",
+    width: 200,
+    height: 200,
+  },
+  {
+    path: "assets/organizations/gainfront.jpeg",
+    byteSize: 8_364,
+    sha256: "cb5cdbe5c8d1fcd45e76444bec8f133a2b3ca632be5b8b8dd35dbaf640cb7f54",
+    width: 200,
+    height: 200,
+  },
+  {
+    path: "assets/organizations/marsdevs.jpeg",
+    byteSize: 5_264,
+    sha256: "a2fe753d1ff176ef6f551a19b85f103a4bd561e893f253c6ef994a0f95c5f46b",
+    width: 200,
+    height: 200,
+  },
+  {
+    path: "assets/organizations/university-of-mumbai.jpeg",
+    byteSize: 13_985,
+    sha256: "41371e7854f72e2215c9a8726bfb60b0ed8c497695a709bde783585f88472e42",
+    width: 200,
+    height: 200,
+  },
 ];
 
 function normalizedExtension(filePath) {
@@ -195,6 +223,14 @@ function assertNonEmptyTrimmedString(value, relativePath, fieldPath) {
   if (typeof value !== "string" || value === "" || value !== value.trim()) {
     throw new Error(
       `Expected ${fieldPath} in ${relativePath} to be a non-empty trimmed string.`,
+    );
+  }
+}
+
+function assertNonEmptyTextSegment(value, relativePath, fieldPath) {
+  if (typeof value !== "string" || value.length === 0 || value.trim() === "") {
+    throw new Error(
+      `Expected ${fieldPath} in ${relativePath} to contain non-whitespace text.`,
     );
   }
 }
@@ -281,6 +317,28 @@ function assertResponsiveImageContract(
         `Expected AVIF, JPEG, and WebP ${label} variants at ${String(width)}px in ${relativePath}.`,
       );
     }
+  }
+}
+
+function assertOrganizationLogoContract(
+  value,
+  expectedPath,
+  relativePath,
+  label,
+) {
+  assertExactRecordFields(
+    value,
+    ["altText", "height", "path", "width"],
+    relativePath,
+    label,
+  );
+  if (
+    value["path"] !== expectedPath ||
+    value["width"] !== 200 ||
+    value["height"] !== 200 ||
+    value["altText"] !== ""
+  ) {
+    throw new Error(`Unexpected ${label} projection in ${relativePath}.`);
   }
 }
 
@@ -558,6 +616,57 @@ function readJpegDimensions(bytes, relativePath) {
   throw new Error(`Could not read JPEG dimensions from ${relativePath}.`);
 }
 
+function assertCleanJpegPayload(bytes, relativePath) {
+  const endOfImage = bytes.lastIndexOf(Buffer.from([0xff, 0xd9]));
+  if (endOfImage !== bytes.length - 2) {
+    throw new Error(
+      `Expected ${relativePath} to end at its JPEG end-of-image marker.`,
+    );
+  }
+
+  let offset = 2;
+  while (offset + 4 <= bytes.length) {
+    while (bytes[offset] === 0xff) offset += 1;
+    const marker = bytes[offset];
+    offset += 1;
+    if (marker === 0xda || marker === 0xd9 || marker === undefined) break;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+
+    const segmentLength = bytes.readUInt16BE(offset);
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) {
+      throw new Error(`Found a malformed JPEG segment in ${relativePath}.`);
+    }
+    if (marker === 0xfe || (marker >= 0xe1 && marker <= 0xef)) {
+      throw new Error(
+        `Found an unnecessary JPEG metadata or application segment in ${relativePath}.`,
+      );
+    }
+    if (marker === 0xe0) {
+      const segment = bytes.subarray(offset + 2, offset + segmentLength);
+      if (
+        segment.subarray(0, 5).toString("ascii") !== "JFIF\0" ||
+        segment.at(12) !== 0 ||
+        segment.at(13) !== 0
+      ) {
+        throw new Error(
+          `Expected only a thumbnail-free JFIF application segment in ${relativePath}.`,
+        );
+      }
+    }
+    offset += segmentLength;
+  }
+
+  const searchableBytes = bytes.toString("latin1").toLowerCase();
+  const embeddedPayloadMarker = ["<script", "%pdf-", "pk\u0003\u0004"].find(
+    (marker) => searchableBytes.includes(marker),
+  );
+  if (embeddedPayloadMarker !== undefined) {
+    throw new Error(
+      `Found an unexpected embedded payload marker in ${relativePath}.`,
+    );
+  }
+}
+
 function readWebpDimensions(bytes, relativePath) {
   if (
     bytes.subarray(0, 4).toString("ascii") !== "RIFF" ||
@@ -633,6 +742,12 @@ const forbiddenPrivateMarkers = [
   "full-stack-extracted.txt",
   "71522e83ade12473ad1b9da4a9ba6dfd9f30e3516b3303c0343d29e7fcf6d5a4",
 ];
+const forbiddenOriginalUploadNames = [
+  "soprasteria_logo.jpeg",
+  "gainfront_logo.jpeg",
+  "marsdevs_logo.jpeg",
+  "university_of_mumbai.jpeg",
+];
 const generatedEntries = await listGeneratedEntries(clientDirectory);
 const generatedRelativePaths = generatedEntries.map((entry) =>
   relativeGeneratedPath(entry.absolutePath),
@@ -650,6 +765,18 @@ for (const marker of forbiddenPrivateMarkers) {
   }
 }
 
+for (const marker of forbiddenOriginalUploadNames) {
+  const normalizedMarker = marker.toLowerCase();
+  const generatedPath = generatedRelativePaths.find((relativePath) =>
+    relativePath.toLowerCase().includes(normalizedMarker),
+  );
+  if (generatedPath !== undefined) {
+    throw new Error(
+      `Found original upload filename ${marker} in generated path ${generatedPath}.`,
+    );
+  }
+}
+
 const generatedFiles = generatedEntries
   .filter((entry) => !entry.isDirectory)
   .map((entry) => entry.absolutePath);
@@ -661,7 +788,8 @@ const generatedPublicAssetPaths = generatedFiles
   .filter(
     (relativePath) =>
       relativePath.startsWith("assets/profile/") ||
-      relativePath.startsWith("assets/resume/"),
+      relativePath.startsWith("assets/resume/") ||
+      relativePath.startsWith("assets/organizations/"),
   )
   .sort();
 
@@ -712,6 +840,10 @@ for (const approvedAsset of approvedPublicAssets) {
       throw new Error(
         `Found unnecessary image metadata marker ${metadataMarker} in ${approvedAsset.path}.`,
       );
+    }
+
+    if ([".jpg", ".jpeg"].includes(normalizedExtension(approvedAsset.path))) {
+      assertCleanJpegPayload(bytes, approvedAsset.path);
     }
   }
 
@@ -820,6 +952,26 @@ for (const [relativePath, expected] of expectedDocuments) {
 
   for (const assetReference of new Set(assetReferences)) {
     await requireNonEmptyFile(assetReference.slice(1));
+  }
+}
+
+const homeHtml = await requireNonEmptyFile("index.html");
+const normalizedHomeHtml = homeHtml.replace(/<!-- -->/g, "");
+for (const expectedMarkup of [
+  ">Experience</h2>",
+  ">Skills</h2>",
+  ">Education</h2>",
+  "<details>",
+  "Show 3 more contributions",
+  "Customer engagement:",
+  "Airbus",
+  "<strong>Strangler Fig pattern</strong>",
+  'Made with <span aria-label="love" role="img">❤️</span> in India · Thank you for visiting.',
+]) {
+  if (!normalizedHomeHtml.includes(expectedMarkup)) {
+    throw new Error(
+      `Expected no-JavaScript professional content marker ${expectedMarkup} in index.html.`,
+    );
   }
 }
 
@@ -1054,6 +1206,18 @@ for (const marker of forbiddenPrivateMarkers) {
   }
 }
 
+for (const marker of forbiddenOriginalUploadNames) {
+  const normalizedMarker = marker.toLowerCase();
+  const artifact = generatedText.find(({ contents }) =>
+    contents.toLowerCase().includes(normalizedMarker),
+  );
+  if (artifact !== undefined) {
+    throw new Error(
+      `Found original upload filename ${marker} in ${artifact.relativePath}.`,
+    );
+  }
+}
+
 const clientJavaScript = generatedText.filter(({ absolutePath }) =>
   javaScriptExtensions.has(normalizedExtension(absolutePath)),
 );
@@ -1153,12 +1317,15 @@ const homeData = decodedRouteData.get("_.data") ?? {};
 const expectedHomeFields = [
   "canonicalOrigin",
   "contacts",
-  "credibilityHighlights",
+  "credibilityCards",
+  "education",
+  "experiences",
   "identity",
   "location",
   "portrait",
   "resume",
   "seo",
+  "skillGroups",
   "socialLinks",
 ];
 assertExactRecordFields(homeData, expectedHomeFields, "_.data", "home loader");
@@ -1169,7 +1336,7 @@ if (homeData["canonicalOrigin"] !== "https://rahuly.in") {
   );
 }
 
-if (homeData["location"] !== "Bangalore, Mumbai, India") {
+if (homeData["location"] !== "Bengaluru, Mumbai - India") {
   throw new Error("Unexpected public location projection in _.data.");
 }
 
@@ -1211,30 +1378,305 @@ if (
   );
 }
 
+const expectedCredibilityCards = [
+  {
+    title: "Phased application modernization",
+    body: "Co-designed a PHP-to-FastAPI/React modernization for the Airbus engagement at Sopra Steria, using Strangler Fig routing and AWS ALB URL rewrites to avoid a big-bang cutover.",
+  },
+  {
+    title: "Greenfield product delivery",
+    body: "Delivered four greenfield modules at Gainfront—Request for Price, Target Report, Spend Analytics, and Itemized Quote—from requirements through release using Django REST Framework and Vue/Quasar.",
+  },
+  {
+    title: "Leadership and measurable outcomes",
+    outcomes: [
+      [
+        "Delivery leadership",
+        "Led delivery for three engineers and reviewed PRs across Sopra Steria, Airbus, and partner teams, while strengthening persistence and authorization testing with database-backed pytest fixtures.",
+      ],
+      [
+        "Payload efficiency",
+        "Reduced primary data-grid API payloads from approximately 1.5–2 MB to below 1 MB through response shaping and Gzip compression, meeting the ALB-to-Lambda response limit.",
+      ],
+      [
+        "Test coverage",
+        "At Gainfront, helped raise backend test coverage by approximately 45 percentage points, from approximately 40% to 85%, while strengthening CI and linting checks.",
+      ],
+    ],
+  },
+];
 if (
-  !Array.isArray(homeData["credibilityHighlights"]) ||
-  homeData["credibilityHighlights"].length !== 5
+  !Array.isArray(homeData["credibilityCards"]) ||
+  homeData["credibilityCards"].length !== expectedCredibilityCards.length
 ) {
-  throw new Error("Expected five approved credibility highlights in _.data.");
+  throw new Error("Expected three approved credibility cards in _.data.");
 }
-for (const [index, highlight] of homeData["credibilityHighlights"].entries()) {
+for (const [index, expected] of expectedCredibilityCards.entries()) {
+  const card = homeData["credibilityCards"][index];
   assertExactRecordFields(
-    highlight,
-    ["detail", "lead"],
+    card,
+    expected.body === undefined ? ["outcomes", "title"] : ["body", "title"],
     "_.data",
-    `credibility highlight ${String(index)}`,
+    `credibility card ${String(index)}`,
   );
-  assertNonEmptyTrimmedString(
-    highlight["lead"],
+  if (card["title"] !== expected.title) {
+    throw new Error(`Unexpected credibility card ${String(index)} title.`);
+  }
+  if (expected.body !== undefined) {
+    if (card["body"] !== expected.body) {
+      throw new Error(`Unexpected credibility card ${String(index)} body.`);
+    }
+    continue;
+  }
+  if (
+    !Array.isArray(card["outcomes"]) ||
+    card["outcomes"].length !== expected.outcomes.length
+  ) {
+    throw new Error("Expected three grouped credibility outcomes in _.data.");
+  }
+  for (const [outcomeIndex, [label, detail]] of expected.outcomes.entries()) {
+    const outcome = card["outcomes"][outcomeIndex];
+    assertExactRecordFields(
+      outcome,
+      ["detail", "label"],
+      "_.data",
+      `credibility card ${String(index)} outcome ${String(outcomeIndex)}`,
+    );
+    if (outcome["label"] !== label || outcome["detail"] !== detail) {
+      throw new Error(
+        `Unexpected credibility outcome ${String(outcomeIndex)} in _.data.`,
+      );
+    }
+  }
+}
+
+const expectedExperiences = [
+  {
+    organization: "Sopra Steria",
+    featured: true,
+    logoPath: "/assets/organizations/sopra-steria.jpeg",
+    roleTitle: "Senior Software Engineer",
+    dateRange: "Aug 2025–Present",
+    location: "Bengaluru, Karnataka, India",
+    contributionCount: 6,
+    engagement: "Airbus",
+  },
+  {
+    organization: "Gainfront",
+    featured: true,
+    logoPath: "/assets/organizations/gainfront.jpeg",
+    roleTitle: "Software Developer",
+    dateRange: "Jun 2023–Aug 2025",
+    location: "Bengaluru, Karnataka, India",
+    contributionCount: 5,
+  },
+  {
+    organization: "MarsDevs",
+    featured: false,
+    logoPath: "/assets/organizations/marsdevs.jpeg",
+    roleTitle: "Software Engineer",
+    dateRange: "Nov 2020–Jun 2023",
+    location: "Pune, Maharashtra, India",
+    contributionCount: 3,
+  },
+];
+
+if (
+  !Array.isArray(homeData["experiences"]) ||
+  homeData["experiences"].length !== expectedExperiences.length
+) {
+  throw new Error("Expected three approved experience groups in _.data.");
+}
+for (const [index, expected] of expectedExperiences.entries()) {
+  const experience = homeData["experiences"][index];
+  assertExactRecordFields(
+    experience,
+    ["featured", "logo", "organization", "roles"],
     "_.data",
-    `credibilityHighlights.${String(index)}.lead`,
+    `experience ${String(index)}`,
   );
-  assertNonEmptyTrimmedString(
-    highlight["detail"],
+  if (
+    experience["organization"] !== expected.organization ||
+    experience["featured"] !== expected.featured ||
+    !Array.isArray(experience["roles"]) ||
+    experience["roles"].length !== 1
+  ) {
+    throw new Error(
+      `Unexpected employer grouping or feature state for experience ${String(index)} in _.data.`,
+    );
+  }
+  assertOrganizationLogoContract(
+    experience["logo"],
+    expected.logoPath,
     "_.data",
-    `credibilityHighlights.${String(index)}.detail`,
+    `experience ${String(index)} logo`,
+  );
+
+  const role = experience["roles"][0];
+  const roleFields = [
+    "contributions",
+    "dateRange",
+    ...(expected.engagement === undefined ? [] : ["engagement"]),
+    "location",
+    "summary",
+    "technologies",
+    "title",
+  ];
+  assertExactRecordFields(
+    role,
+    roleFields,
+    "_.data",
+    `experience ${String(index)} role`,
+  );
+  if (
+    role["title"] !== expected.roleTitle ||
+    role["dateRange"] !== expected.dateRange ||
+    role["location"] !== expected.location ||
+    !Array.isArray(role["contributions"]) ||
+    role["contributions"].length !== expected.contributionCount ||
+    !Array.isArray(role["technologies"]) ||
+    role["technologies"].length === 0
+  ) {
+    throw new Error(
+      `Unexpected role projection for ${expected.organization} in _.data.`,
+    );
+  }
+  for (const [contributionIndex, contribution] of role[
+    "contributions"
+  ].entries()) {
+    if (!Array.isArray(contribution) || contribution.length === 0) {
+      throw new Error(
+        `Expected structured text segments for contribution ${String(contributionIndex)} on ${expected.organization}.`,
+      );
+    }
+    for (const [segmentIndex, segment] of contribution.entries()) {
+      assertExactRecordFields(
+        segment,
+        ["emphasized", "text"],
+        "_.data",
+        `experience ${String(index)} contribution ${String(contributionIndex)} segment ${String(segmentIndex)}`,
+      );
+      assertNonEmptyTextSegment(
+        segment["text"],
+        "_.data",
+        `experiences.${String(index)}.roles.0.contributions.${String(contributionIndex)}.${String(segmentIndex)}.text`,
+      );
+      if (typeof segment["emphasized"] !== "boolean") {
+        throw new Error("Experience emphasis flags must be boolean values.");
+      }
+    }
+    if (!contribution.some((segment) => segment["emphasized"] === true)) {
+      throw new Error(
+        `Contribution ${String(contributionIndex)} on ${expected.organization} is missing approved résumé emphasis.`,
+      );
+    }
+  }
+  for (const [technologyIndex, technology] of role["technologies"].entries()) {
+    assertNonEmptyTrimmedString(
+      technology,
+      "_.data",
+      `experiences.${String(index)}.roles.0.technologies.${String(technologyIndex)}`,
+    );
+  }
+
+  if (expected.engagement === undefined) {
+    if (role["engagement"] !== undefined) {
+      throw new Error(
+        `Unexpected customer engagement on ${expected.organization} in _.data.`,
+      );
+    }
+  } else {
+    assertExactRecordFields(
+      role["engagement"],
+      ["label", "organization"],
+      "_.data",
+      `${expected.organization} engagement`,
+    );
+    if (
+      role["engagement"]["label"] !== "Customer engagement" ||
+      role["engagement"]["organization"] !== expected.engagement
+    ) {
+      throw new Error(
+        `Expected Airbus to remain customer engagement context under Sopra Steria in _.data.`,
+      );
+    }
+  }
+}
+
+const expectedSkillGroups = [
+  ["languages", "Languages", 3],
+  ["backend", "Backend and APIs", 13],
+  ["frontend", "Frontend", 6],
+  ["data", "Databases, caching, and asynchronous processing", 6],
+  ["cloud", "Cloud and infrastructure", 10],
+  ["tooling", "Testing, quality, and developer tooling", 6],
+];
+if (
+  !Array.isArray(homeData["skillGroups"]) ||
+  homeData["skillGroups"].length !== expectedSkillGroups.length
+) {
+  throw new Error("Expected six approved skill groups in _.data.");
+}
+const projectedSkills = [];
+for (const [
+  index,
+  [category, name, skillCount],
+] of expectedSkillGroups.entries()) {
+  const group = homeData["skillGroups"][index];
+  assertExactRecordFields(
+    group,
+    ["category", "name", "skills"],
+    "_.data",
+    `skill group ${String(index)}`,
+  );
+  if (
+    group["category"] !== category ||
+    group["name"] !== name ||
+    !Array.isArray(group["skills"]) ||
+    group["skills"].length !== skillCount
+  ) {
+    throw new Error(`Unexpected skill group ${String(index)} in _.data.`);
+  }
+  projectedSkills.push(...group["skills"]);
+}
+if (
+  projectedSkills.length !== 44 ||
+  new Set(projectedSkills).size !== 44 ||
+  projectedSkills.includes("PHP")
+) {
+  throw new Error(
+    "Expected exactly 44 unique public skills and no PHP skill in _.data.",
   );
 }
+
+if (
+  !Array.isArray(homeData["education"]) ||
+  homeData["education"].length !== 1
+) {
+  throw new Error("Expected one approved education record in _.data.");
+}
+const education = homeData["education"][0];
+assertExactRecordFields(
+  education,
+  ["credential", "dateRange", "fieldOfStudy", "institution", "logo", "score"],
+  "_.data",
+  "education record",
+);
+if (
+  education["institution"] !== "University of Mumbai" ||
+  education["credential"] !== "Bachelor of Engineering" ||
+  education["fieldOfStudy"] !== "Computer Engineering" ||
+  education["dateRange"] !== "2016–2020" ||
+  education["score"] !== "CGPA 8.74/10"
+) {
+  throw new Error("Unexpected public education projection in _.data.");
+}
+assertOrganizationLogoContract(
+  education["logo"],
+  "/assets/organizations/university-of-mumbai.jpeg",
+  "_.data",
+  "education logo",
+);
 
 if (!Array.isArray(homeData["contacts"]) || homeData["contacts"].length !== 2) {
   throw new Error("Expected approved email and phone contacts in _.data.");
@@ -1306,9 +1748,7 @@ assertResponsiveImageContract(
 );
 
 const forbiddenHomeFields = new Set([
-  "experiences",
-  "skillGroups",
-  "education",
+  "credibilityHighlights",
   "featuredProjects",
   "recentWritings",
   "resumeAsset",
@@ -1319,6 +1759,9 @@ const forbiddenHomeFields = new Set([
   "profileImage",
   "supportingClaimIds",
   "technologyIds",
+  "logoAssetId",
+  "relationship",
+  "responsibilities",
 ]);
 const forbiddenHomeField = findPropertyPath(homeData, forbiddenHomeFields);
 if (forbiddenHomeField !== undefined) {
@@ -1400,6 +1843,10 @@ for (const [relativePath, loaderData] of decodedRouteData) {
 }
 
 const forbiddenLoaderFields = [
+  "credibilityHighlights",
+  "id",
+  "order",
+  "assetId",
   "sourcePath",
   "sha256",
   "byteSize",
@@ -1408,6 +1855,21 @@ const forbiddenLoaderFields = [
   "linkCount",
   "linkValidationVerified",
   "approvedOn",
+  "originalFilename",
+  "intakeMediaType",
+  "intakeWidth",
+  "intakeHeight",
+  "intakeByteSize",
+  "intakeSha256",
+  "publicDerivativePath",
+  "publicDerivativeMediaType",
+  "publicDerivativeWidth",
+  "publicDerivativeHeight",
+  "publicDerivativeByteSize",
+  "publicDerivativeSha256",
+  "metadataInspection",
+  "intendedUse",
+  "supportingClaimIds",
 ];
 
 for (const [relativePath, loaderData] of decodedRouteData) {
