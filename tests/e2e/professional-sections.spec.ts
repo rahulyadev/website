@@ -462,12 +462,24 @@ test("experience headers prioritize designation while preserving semantic order 
               const metadataRect = metadata.getBoundingClientRect();
               const companyRect = company.getBoundingClientRect();
               const designationRect = designation.getBoundingClientRect();
+              const designationRange = document.createRange();
+              designationRange.selectNodeContents(designation);
+              const designationLineRects = [
+                ...designationRange.getClientRects(),
+              ];
+              const designationLastLine = designationLineRects.at(-1);
+              if (designationLastLine === undefined) {
+                throw new Error("Experience designation has no rendered line.");
+              }
               const datesRect = dates.getBoundingClientRect();
               const locationRect = location.getBoundingClientRect();
               const featuredRect = featured?.getBoundingClientRect();
               return {
                 companyFontSize: Number.parseFloat(
                   getComputedStyle(company).fontSize,
+                ),
+                companyLineHeight: Number.parseFloat(
+                  getComputedStyle(company).lineHeight,
                 ),
                 companyTop: companyRect.top,
                 contentLeft: contentRect.left,
@@ -476,6 +488,12 @@ test("experience headers prioritize designation while preserving semantic order 
                 designationBottom: designationRect.bottom,
                 designationFontSize: Number.parseFloat(
                   getComputedStyle(designation).fontSize,
+                ),
+                designationLastLineCenter:
+                  designationLastLine.top + designationLastLine.height / 2,
+                designationLastLineRight: designationLastLine.right,
+                designationLineHeight: Number.parseFloat(
+                  getComputedStyle(designation).lineHeight,
                 ),
                 domHeadingOrder:
                   (company.compareDocumentPosition(designation) &
@@ -486,7 +504,15 @@ test("experience headers prioritize designation while preserving semantic order 
                 featuredParentClass: featured?.parentElement?.className ?? null,
                 featuredPreviousTag:
                   featured?.previousElementSibling?.tagName ?? null,
+                featuredCenter:
+                  featuredRect === undefined
+                    ? null
+                    : featuredRect.top + featuredRect.height / 2,
+                featuredHeight: featuredRect?.height ?? null,
+                featuredLeft: featuredRect?.left ?? null,
+                featuredRight: featuredRect?.right ?? null,
                 featuredTop: featuredRect?.top ?? null,
+                featuredWidth: featuredRect?.width ?? null,
                 headerColumnCount: getComputedStyle(header)
                   .gridTemplateColumns.trim()
                   .split(/\s+/).length,
@@ -514,12 +540,30 @@ test("experience headers prioritize designation while preserving semantic order 
     expect(Number.parseFloat(geometry.timelineTop)).toBeGreaterThan(0);
     expect(Number.parseFloat(geometry.timelineBottom)).toBeGreaterThan(0);
     expect(geometry.entries).toHaveLength(3);
+    const expectedDesignationSize = Math.min(
+      Math.max(1.0625 * 16, 16 + viewport.width * 0.0025),
+      1.25 * 16,
+    );
+    const expectedCompanySize = Math.min(
+      Math.max(0.9375 * 16, 0.91 * 16 + viewport.width * 0.001),
+      16,
+    );
     for (const [index, entry] of geometry.entries.entries()) {
       expect(entry.headerColumnCount).toBe(3);
       expect(entry.entryBorderTop).toBe("0px");
       expect(entry.entryPseudoContent).toBe("none");
       expect(entry.domHeadingOrder).toBe(true);
       expect(entry.designationFontSize).toBeGreaterThan(entry.companyFontSize);
+      expect(entry.designationFontSize).toBeCloseTo(expectedDesignationSize, 1);
+      expect(entry.companyFontSize).toBeCloseTo(expectedCompanySize, 1);
+      expect(entry.designationLineHeight).toBeCloseTo(
+        entry.designationFontSize * 1.2,
+        1,
+      );
+      expect(entry.companyLineHeight).toBeCloseTo(
+        entry.companyFontSize * 1.25,
+        1,
+      );
       expect(entry.designationBottom).toBeLessThanOrEqual(
         entry.companyTop + 0.5,
       );
@@ -535,11 +579,28 @@ test("experience headers prioritize designation while preserving semantic order 
         expect(entry.featuredParentClass).toBe("experience-role__title-row");
         expect(entry.featuredPreviousTag).toBe("H4");
         expect(entry.featuredTop).not.toBeNull();
+        expect(entry.featuredWidth).toBeCloseTo(entry.designationFontSize, 1);
+        expect(entry.featuredHeight).toBeCloseTo(entry.designationFontSize, 1);
+        expect(
+          Math.abs(
+            (entry.featuredCenter ?? Number.POSITIVE_INFINITY) -
+              entry.designationLastLineCenter,
+          ),
+        ).toBeLessThanOrEqual(2);
+        expect(
+          (entry.featuredLeft ?? Number.POSITIVE_INFINITY) -
+            entry.designationLastLineRight,
+        ).toBeCloseTo(4, 1);
         expect(entry.titleChildCount).toBe(2);
       } else {
         expect(entry.featuredParentClass).toBeNull();
         expect(entry.featuredPreviousTag).toBeNull();
+        expect(entry.featuredCenter).toBeNull();
+        expect(entry.featuredHeight).toBeNull();
+        expect(entry.featuredLeft).toBeNull();
+        expect(entry.featuredRight).toBeNull();
         expect(entry.featuredTop).toBeNull();
+        expect(entry.featuredWidth).toBeNull();
         expect(entry.titleChildCount).toBe(1);
       }
     }
@@ -600,11 +661,21 @@ test("experience headers prioritize designation while preserving semantic order 
           const metadataRect = metadata.getBoundingClientRect();
           const datesRect = dates.getBoundingClientRect();
           const locationRect = location.getBoundingClientRect();
+          const designationRange = document.createRange();
+          designationRange.selectNodeContents(designation);
+          const designationLineRects = [...designationRange.getClientRects()];
+          const designationLastLine = designationLineRects.at(-1);
+          if (designationLastLine === undefined) {
+            throw new Error("Mobile designation has no rendered line.");
+          }
           const featuredRect = featured?.getBoundingClientRect();
           return {
             companyBottom: companyRect.bottom,
             companyFontSize: Number.parseFloat(
               getComputedStyle(company).fontSize,
+            ),
+            companyLineHeight: Number.parseFloat(
+              getComputedStyle(company).lineHeight,
             ),
             companyTop: companyRect.top,
             dateBottom: datesRect.bottom,
@@ -613,8 +684,21 @@ test("experience headers prioritize designation while preserving semantic order 
             designationFontSize: Number.parseFloat(
               getComputedStyle(designation).fontSize,
             ),
+            designationLastLineCenter:
+              designationLastLine.top + designationLastLine.height / 2,
+            designationLastLineRight: designationLastLine.right,
+            designationLineHeight: Number.parseFloat(
+              getComputedStyle(designation).lineHeight,
+            ),
+            featuredCenter:
+              featuredRect === undefined
+                ? null
+                : featuredRect.top + featuredRect.height / 2,
+            featuredHeight: featuredRect?.height ?? null,
+            featuredLeft: featuredRect?.left ?? null,
             featuredRight: featuredRect?.right ?? null,
             featuredTop: featuredRect?.top ?? null,
+            featuredWidth: featuredRect?.width ?? null,
             headerColumnCount: getComputedStyle(header)
               .gridTemplateColumns.trim()
               .split(/\s+/).length,
@@ -636,6 +720,16 @@ test("experience headers prioritize designation while preserving semantic order 
       expect(header.designationFontSize).toBeGreaterThan(
         header.companyFontSize,
       );
+      expect(header.designationFontSize).toBeCloseTo(17, 1);
+      expect(header.companyFontSize).toBeCloseTo(15, 1);
+      expect(header.designationLineHeight).toBeCloseTo(
+        header.designationFontSize * 1.2,
+        1,
+      );
+      expect(header.companyLineHeight).toBeCloseTo(
+        header.companyFontSize * 1.25,
+        1,
+      );
       expect(header.designationBottom).toBeLessThanOrEqual(
         header.companyTop + 0.5,
       );
@@ -649,13 +743,32 @@ test("experience headers prioritize designation while preserving semantic order 
       ).toBeLessThanOrEqual(1);
       if (index < 2) {
         expect(header.featuredTop).not.toBeNull();
+        expect(header.featuredWidth).toBeCloseTo(header.designationFontSize, 1);
+        expect(header.featuredHeight).toBeCloseTo(
+          header.designationFontSize,
+          1,
+        );
+        expect(
+          Math.abs(
+            (header.featuredCenter ?? Number.POSITIVE_INFINITY) -
+              header.designationLastLineCenter,
+          ),
+        ).toBeLessThanOrEqual(2);
+        expect(
+          (header.featuredLeft ?? Number.POSITIVE_INFINITY) -
+            header.designationLastLineRight,
+        ).toBeCloseTo(4, 1);
         expect(
           header.featuredRight ?? Number.POSITIVE_INFINITY,
         ).toBeLessThanOrEqual(header.headerRight + 0.5);
         expect(header.titleChildCount).toBe(2);
       } else {
         expect(header.featuredTop).toBeNull();
+        expect(header.featuredCenter).toBeNull();
+        expect(header.featuredHeight).toBeNull();
+        expect(header.featuredLeft).toBeNull();
         expect(header.featuredRight).toBeNull();
+        expect(header.featuredWidth).toBeNull();
         expect(header.titleChildCount).toBe(1);
       }
     }
@@ -666,7 +779,23 @@ test("experience headers prioritize designation while preserving semantic order 
 test("featured experience indicators expose stable tooltips and honor motion preferences", async ({
   page,
 }) => {
-  await page.goto("/");
+  for (const { color, theme } of [
+    { color: "rgb(161, 98, 7)", theme: "light" },
+    { color: "rgb(250, 204, 21)", theme: "dark" },
+  ]) {
+    await page.goto("/");
+    await page.evaluate((preference) => {
+      localStorage.setItem("rahuly-theme-preference", preference);
+    }, theme);
+    await page.reload();
+
+    const themedIndicator = page
+      .getByRole("img", { name: "Featured experience" })
+      .first();
+    await expect(themedIndicator).toHaveCSS("color", color);
+    await expect(themedIndicator).toHaveCSS("cursor", "default");
+    await expect(themedIndicator.locator("svg")).toHaveCSS("fill", color);
+  }
 
   const indicators = page.getByRole("img", { name: "Featured experience" });
   await expect(indicators).toHaveCount(2);

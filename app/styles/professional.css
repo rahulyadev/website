@@ -89,19 +89,22 @@
 
 .experience-entry__featured {
   position: relative;
-  display: grid;
-  width: 1.5rem;
-  height: 1.5rem;
-  flex: 0 0 1.5rem;
+  display: inline-grid;
+  width: 1em;
+  height: 1em;
+  margin-left: var(--space-1);
   place-items: center;
+  vertical-align: middle;
   border-radius: 50%;
-  color: var(--color-accent);
-  cursor: help;
+  color: #a16207;
+  font-size: inherit;
+  line-height: 1;
+  cursor: default;
 }
 
 .experience-entry__featured svg {
-  width: 1rem;
-  height: 1rem;
+  width: 100%;
+  height: 100%;
   fill: currentcolor;
   animation: experience-featured-pulse 2.8s var(--motion-ease-standard) infinite;
   transform-origin: center;
@@ -142,6 +145,16 @@
   transition-delay: 0s;
 }
 
+:root[data-theme="dark"] .experience-entry__featured {
+  color: #facc15;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .experience-entry__featured {
+    color: #facc15;
+  }
+}
+
 .experience-entry__header {
   display: grid;
   width: 100%;
@@ -167,32 +180,35 @@
     "company";
   align-content: center;
   align-self: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .experience-entry__identity-copy h3 {
   min-width: 0;
   grid-area: company;
   font-family: var(--font-family-body);
-  font-size: var(--font-size-body-large);
+  font-size: clamp(0.9375rem, 0.91rem + 0.1vw, 1rem);
   font-weight: var(--font-weight-medium);
   letter-spacing: normal;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
 .experience-role__title-row {
-  display: flex;
+  display: block;
   min-width: 0;
   grid-area: title;
-  align-items: flex-start;
-  gap: var(--space-2);
+  font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
+  line-height: 1.2;
 }
 
 .experience-role .experience-role__title-row h4 {
+  display: inline;
   max-width: 100%;
   min-width: 0;
-  flex: 0 1 auto;
-  font-size: var(--font-size-heading-3);
+  font-size: inherit;
+  font-weight: var(--font-weight-semibold);
+  line-height: inherit;
 }
 
 .experience-role__metadata {
