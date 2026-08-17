@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { articleStructuredData } from "../../app/content/article-metadata";
+import type { PublishedWriting } from "../../app/domain/content";
 import {
+  latestRssBuildDate,
   loadRssXml,
   loadSitemapXml,
   loadWritingDetailPageData,
@@ -137,29 +138,6 @@ describe("writing route-data projections", () => {
       { kind: "not-found", requestedSlug: "missing-writing" },
     );
   });
-
-  it("projects factual Article JSON-LD without invented publisher or image data", async () => {
-    const lookup = await loadWritingDetailPageData("reducing-api-payloads");
-    if (lookup.kind === "not-found") throw new Error("Expected writing.");
-    const structuredData = articleStructuredData(lookup.data);
-
-    expect(structuredData).toMatchObject({
-      "@context": "https://schema.org",
-      "@type": "Article",
-      headline: "Reducing API Payloads with Response Shaping and Compression",
-      datePublished: "2026-07-20",
-      mainEntityOfPage: "https://rahuly.in/writings/reducing-api-payloads",
-      author: {
-        "@type": "Person",
-        name: "Rahul Yadav",
-        url: "https://rahuly.in",
-      },
-      inLanguage: "en-IN",
-    });
-    expect(structuredData).not.toHaveProperty("publisher");
-    expect(structuredData).not.toHaveProperty("image");
-    expect(structuredData).not.toHaveProperty("dateModified");
-  });
 });
 
 describe("writing XML projections", () => {
@@ -177,6 +155,12 @@ describe("writing XML projections", () => {
       slugs.map((slug) => `https://rahuly.in/writings/${slug}`),
     );
     expect(document.querySelectorAll("item > description")).toHaveLength(5);
+    expect(document.querySelector("channel > language")?.textContent).toBe(
+      "en-IN",
+    );
+    expect(document.querySelector("channel > lastBuildDate")?.textContent).toBe(
+      "Mon, 17 Aug 2026 00:00:00 GMT",
+    );
     expect(elementTexts(document, "item > pubDate")).toEqual([
       "Mon, 17 Aug 2026 00:00:00 GMT",
       "Mon, 10 Aug 2026 00:00:00 GMT",
@@ -189,6 +173,34 @@ describe("writing XML projections", () => {
     expect(xml).not.toContain("sourcePath");
   });
 
+  it("uses the latest update date for RSS even when it is not the newest publication", async () => {
+    const lookup = await loadWritingDetailPageData("reducing-api-payloads");
+    if (lookup.kind === "not-found") throw new Error("Expected writing.");
+    const repositoryWriting: PublishedWriting = {
+      metadata: {
+        id: "rss-date-test",
+        slug: lookup.data.writing.slug,
+        title: lookup.data.writing.title,
+        publicationStatus: "published",
+        summary: lookup.data.writing.summary,
+        publishedOn: lookup.data.writing.publishedOn,
+        updatedOn: "2026-09-01",
+        tags: lookup.data.writing.tags,
+        featured: false,
+        seo: lookup.data.writing.seo,
+      },
+      article: {
+        format: "article-tree",
+        blocks: [],
+        tableOfContents: [],
+        readingTimeMinutes: 1,
+        wordCount: 1,
+      },
+    };
+
+    expect(latestRssBuildDate([repositoryWriting])).toBe("2026-09-01");
+  });
+
   it("generates the exact public sitemap and article-only lastmod values", async () => {
     const xml = await loadSitemapXml();
     const document = new DOMParser().parseFromString(xml, "application/xml");
@@ -198,13 +210,10 @@ describe("writing XML projections", () => {
     expect(locations).toEqual([
       "https://rahuly.in/",
       "https://rahuly.in/projects",
-      "https://rahuly.in/projects/tourney",
-      "https://rahuly.in/projects/url-shortener",
-      "https://rahuly.in/projects/portfolio-tracker",
-      "https://rahuly.in/projects/universal-job-tracker",
       "https://rahuly.in/writings",
       ...slugs.map((slug) => `https://rahuly.in/writings/${slug}`),
     ]);
+    expect(locations).toHaveLength(8);
     expect(document.querySelectorAll("lastmod")).toHaveLength(5);
     expect(elementTexts(document, "lastmod")).toEqual(publicationDates);
     expect(xml).not.toContain("rss.xml");

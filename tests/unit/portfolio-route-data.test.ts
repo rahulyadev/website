@@ -31,7 +31,7 @@ describe("portfolio route-data projections", () => {
     );
   });
 
-  it("returns the exact render-only home fields needed through Milestone 7", async () => {
+  it("returns the exact approved public home fields through Milestone 9", async () => {
     const data = await loadHomePageData();
 
     expectExactKeys(data, [
@@ -68,6 +68,11 @@ describe("portfolio route-data projections", () => {
     ]);
     expect(data.portrait.altText).not.toBe("");
     expect(data.portrait.variants).toHaveLength(9);
+    expect(Object.keys(data.seo).sort()).toEqual([
+      "canonicalPath",
+      "description",
+      "title",
+    ]);
     expect(data.credibilityCards).toEqual([
       {
         title: "Phased application modernization",
@@ -254,7 +259,7 @@ describe("portfolio route-data projections", () => {
 
     const serialized = JSON.stringify(data);
     expect(serialized).not.toMatch(
-      /approvedOn|assetId|byteSize|intakeSha256|linkCount|linkValidationVerified|metadataInspection|metadataRemovalVerified|originalFilename|pageCount|publicDerivativeSha256|sha256|sourcePath/,
+      /approvedOn|assetId|byteSize|intakeSha256|linkCount|linkValidationVerified|metadataInspection|metadataRemovalVerified|originalFilename|pageCount|publicDerivativeSha256|sha256|socialImageAssetId|sourcePath/,
     );
     expect(serialized).not.toMatch(/"(?:id|order|technologyIds)":/);
     expect(serialized).not.toMatch(
@@ -269,6 +274,11 @@ describe("portfolio route-data projections", () => {
 
     expectExactKeys(index, ["canonicalOrigin", "seo", "items"]);
     expect(index.items).toHaveLength(4);
+    expect(Object.keys(index.seo).sort()).toEqual([
+      "canonicalPath",
+      "description",
+      "title",
+    ]);
     for (const project of index.items) {
       expectExactKeys(project, [
         "slug",
@@ -317,7 +327,7 @@ describe("portfolio route-data projections", () => {
 
     const serialized = JSON.stringify({ index, detail });
     expect(serialized).not.toMatch(
-      /approvedOn|byteSize|featuredOnHome|homeStack|metadataRemovalVerified|publicationStatus|sha256|sourcePath|supportingClaimIds/,
+      /approvedOn|byteSize|featuredOnHome|homeStack|metadataRemovalVerified|publicationStatus|sha256|socialImageAssetId|sourcePath|supportingClaimIds/,
     );
     expect(serialized).not.toMatch(/"(?:id|order)":/);
   });

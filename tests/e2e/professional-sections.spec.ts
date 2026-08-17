@@ -1202,7 +1202,7 @@ test("prose and section labels use the approved typography", async ({
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-IN");
 
     for (const selector of [
       ".home-hero__positioning",

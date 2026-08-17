@@ -1,23 +1,19 @@
 import { ProjectCard } from "../components/projects/project-card";
 import { loadProjectsPageData } from "../content/portfolio-route-data.server";
+import { buildPageMetadata } from "../seo/metadata";
 import type { Route } from "./+types/projects";
 
 export async function loader() {
   return loadProjectsPageData();
 }
 
-export const meta: Route.MetaFunction = ({ loaderData }) => {
-  return [
-    { title: loaderData.seo.title },
-    { name: "description", content: loaderData.seo.description },
-    {
-      tagName: "link",
-      rel: "canonical",
-      href: new URL(loaderData.seo.canonicalPath, loaderData.canonicalOrigin)
-        .href,
-    },
-  ];
-};
+export const meta: Route.MetaFunction = ({ loaderData }) =>
+  buildPageMetadata({
+    canonicalOrigin: loaderData.canonicalOrigin,
+    seo: loaderData.seo,
+    openGraphType: "website",
+    discoverFeed: true,
+  });
 
 export default function Projects({ loaderData }: Route.ComponentProps) {
   return (

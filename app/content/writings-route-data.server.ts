@@ -7,6 +7,8 @@ import type {
 } from "../domain/route-data";
 import type { ContentRepository } from "./content-repository";
 import { getContentRepository } from "./content.server";
+import { projectPublicSeoMetadata } from "./public-seo.server";
+import { PUBLIC_LANGUAGE, resolveCanonicalUrl } from "../seo/metadata";
 
 function writingIndexItem(writing: PublishedWriting): WritingIndexItemData {
   return {
@@ -36,7 +38,7 @@ export async function loadWritingsPageData(
   const collection = await repository.getPublishedWritings();
   return {
     canonicalOrigin: collection.canonicalOrigin,
-    seo: collection.seo,
+    seo: projectPublicSeoMetadata(collection.seo),
     items: collection.items.map(writingIndexItem),
   };
 }
@@ -95,7 +97,7 @@ export async function loadWritingDetailPageData(
           : { updatedOn: writing.metadata.updatedOn }),
         readingTimeMinutes: writing.article.readingTimeMinutes,
         tags: writing.metadata.tags,
-        seo: writing.metadata.seo,
+        seo: projectPublicSeoMetadata(writing.metadata.seo),
         article: {
           blocks: writing.article.blocks,
           tableOfContents: writing.article.tableOfContents,
@@ -121,18 +123,31 @@ function rssDate(value: string) {
   return new Date(`${value}T00:00:00.000Z`).toUTCString();
 }
 
+export function latestRssBuildDate(
+  writings: readonly PublishedWriting[],
+): string | undefined {
+  return writings
+    .map(
+      (writing) => writing.metadata.updatedOn ?? writing.metadata.publishedOn,
+    )
+    .sort((left, right) => right.localeCompare(left))[0];
+}
+
 export async function loadRssXml(
   repository: ContentRepository = getContentRepository(),
 ) {
   const collection = await repository.getPublishedWritings();
-  const channelUrl = new URL("/writings", collection.canonicalOrigin).href;
-  const feedUrl = new URL("/rss.xml", collection.canonicalOrigin).href;
+  const channelUrl = resolveCanonicalUrl(
+    collection.canonicalOrigin,
+    "/writings",
+  );
+  const feedUrl = resolveCanonicalUrl(collection.canonicalOrigin, "/rss.xml");
   const items = collection.items
     .map((writing) => {
-      const url = new URL(
-        writing.metadata.seo.canonicalPath,
+      const url = resolveCanonicalUrl(
         collection.canonicalOrigin,
-      ).href;
+        writing.metadata.seo.canonicalPath,
+      );
       const categories = writing.metadata.tags
         .map((tag) => `      <category>${xmlEscape(tag)}</category>`)
         .join("\n");
@@ -150,7 +165,7 @@ export async function loadRssXml(
         .join("\n");
     })
     .join("\n");
-  const latestPublishedOn = collection.items[0]?.metadata.publishedOn;
+  const latestBuildDate = latestRssBuildDate(collection.items);
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -159,12 +174,12 @@ export async function loadRssXml(
     "    <title>Rahul Yadav — Writings</title>",
     `    <link>${xmlEscape(channelUrl)}</link>`,
     "    <description>Engineering notes by Rahul Yadav on backend systems, modernization, testing, and maintainable software.</description>",
-    "    <language>en-IN</language>",
+    `    <language>${PUBLIC_LANGUAGE}</language>`,
     `    <atom:link xmlns:atom="http://www.w3.org/2005/Atom" href="${xmlEscape(feedUrl)}" rel="self" type="application/rss+xml" />`,
-    ...(latestPublishedOn === undefined
+    ...(latestBuildDate === undefined
       ? []
       : [
-          `    <lastBuildDate>${xmlEscape(rssDate(latestPublishedOn))}</lastBuildDate>`,
+          `    <lastBuildDate>${xmlEscape(rssDate(latestBuildDate))}</lastBuildDate>`,
         ]),
     ...(items.length === 0 ? [] : [items]),
     "  </channel>",
@@ -176,19 +191,12 @@ export async function loadRssXml(
 export async function loadSitemapXml(
   repository: ContentRepository = getContentRepository(),
 ) {
-  const [projects, writings] = await Promise.all([
-    repository.getPublishedProjects(),
-    repository.getPublishedWritings(),
-  ]);
-  const origin = projects.canonicalOrigin;
-  if (origin !== writings.canonicalOrigin) {
-    throw new Error("Validated project and writing canonical origins differ.");
-  }
+  const writings = await repository.getPublishedWritings();
+  const origin = writings.canonicalOrigin;
 
   const entries: { readonly path: string; readonly lastmod?: string }[] = [
     { path: "/" },
     { path: "/projects" },
-    ...projects.items.map((project) => ({ path: `/projects/${project.slug}` })),
     { path: "/writings" },
     ...writings.items.map((writing) => ({
       path: writing.metadata.seo.canonicalPath,
@@ -201,7 +209,7 @@ export async function loadSitemapXml(
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...entries.flatMap((entry) => [
       "  <url>",
-      `    <loc>${xmlEscape(new URL(entry.path, origin).href)}</loc>`,
+      `    <loc>${xmlEscape(resolveCanonicalUrl(origin, entry.path))}</loc>`,
       ...(entry.lastmod === undefined
         ? []
         : [`    <lastmod>${xmlEscape(entry.lastmod)}</lastmod>`]),

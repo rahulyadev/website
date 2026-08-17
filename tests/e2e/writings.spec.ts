@@ -180,7 +180,20 @@ for (const [writingIndex, writing] of writings.entries()) {
 
     const structuredData = await page
       .locator('script[type="application/ld+json"]')
-      .evaluate((script): unknown => JSON.parse(script.textContent));
+      .evaluateAll((scripts): Record<string, unknown> | undefined => {
+        for (const script of scripts) {
+          const value: unknown = JSON.parse(script.textContent);
+          if (
+            typeof value === "object" &&
+            value !== null &&
+            "@type" in value &&
+            value["@type"] === "Article"
+          ) {
+            return value;
+          }
+        }
+        return undefined;
+      });
     expect(structuredData).toMatchObject({
       "@context": "https://schema.org",
       "@type": "Article",
@@ -786,23 +799,54 @@ test("RSS and sitemap resource routes are directly navigable and structurally co
 
   const rss = await rssResponse.text();
   const sitemap = await sitemapResponse.text();
-  expect(rss.match(/<item>/g)).toHaveLength(5);
+  const xmlInventory = await page.evaluate(
+    ({ rssXml, sitemapXml }) => {
+      const parse = (value: string) =>
+        new DOMParser().parseFromString(value, "application/xml");
+      const rssDocument = parse(rssXml);
+      const sitemapDocument = parse(sitemapXml);
+      return {
+        rssParserErrors: rssDocument.querySelectorAll("parsererror").length,
+        rssItemCount: rssDocument.querySelectorAll("item").length,
+        rssDates: [...rssDocument.querySelectorAll("item > pubDate")].map(
+          (date) => date.textContent,
+        ),
+        rssLanguage:
+          rssDocument.querySelector("channel > language")?.textContent,
+        sitemapParserErrors:
+          sitemapDocument.querySelectorAll("parsererror").length,
+        sitemapLocations: [
+          ...sitemapDocument.querySelectorAll("url > loc"),
+        ].map((location) => location.textContent),
+        sitemapLastModified: [
+          ...sitemapDocument.querySelectorAll("url > lastmod"),
+        ].map((date) => date.textContent),
+      };
+    },
+    { rssXml: rss, sitemapXml: sitemap },
+  );
+  expect(xmlInventory.rssParserErrors).toBe(0);
+  expect(xmlInventory.sitemapParserErrors).toBe(0);
+  expect(xmlInventory.rssItemCount).toBe(5);
+  expect(xmlInventory.rssLanguage).toBe("en-IN");
   expect(rss).not.toContain("content:encoded");
-  expect(sitemap.match(/<loc>/g)).toHaveLength(12);
-  expect(
-    [...rss.matchAll(/<pubDate>([^<]+)<\/pubDate>/gu)].map((match) => match[1]),
-  ).toEqual([
+  expect(xmlInventory.rssDates).toEqual([
     "Mon, 17 Aug 2026 00:00:00 GMT",
     "Mon, 10 Aug 2026 00:00:00 GMT",
     "Mon, 03 Aug 2026 00:00:00 GMT",
     "Mon, 27 Jul 2026 00:00:00 GMT",
     "Mon, 20 Jul 2026 00:00:00 GMT",
   ]);
-  expect(
-    [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/gu)].map(
-      (match) => match[1],
-    ),
-  ).toEqual(writings.map((writing) => writing.publishedOn));
+  expect(xmlInventory.sitemapLocations).toHaveLength(8);
+  expect(xmlInventory.sitemapLocations).toEqual([
+    "https://rahuly.in/",
+    "https://rahuly.in/projects",
+    "https://rahuly.in/writings",
+    ...writings.map((writing) => `https://rahuly.in/writings/${writing.slug}`),
+  ]);
+  expect(xmlInventory.sitemapLastModified).toEqual(
+    writings.map((writing) => writing.publishedOn),
+  );
   for (const { slug } of writings) {
     expect(rss).toContain(`https://rahuly.in/writings/${slug}`);
     expect(sitemap).toContain(`https://rahuly.in/writings/${slug}`);

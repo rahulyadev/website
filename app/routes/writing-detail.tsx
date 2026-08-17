@@ -3,8 +3,13 @@ import { data, Link } from "react-router";
 import { NotFoundPage } from "../components/not-found-page";
 import { ArticleContent } from "../components/writings/article-content";
 import { ArticleTableOfContents } from "../components/writings/article-table-of-contents";
-import { articleStructuredData } from "../content/article-metadata";
 import { loadWritingDetailPageData } from "../content/writings-route-data.server";
+import { JsonLd } from "../seo/json-ld";
+import { buildNotFoundMetadata, buildPageMetadata } from "../seo/metadata";
+import {
+  articleBreadcrumbStructuredData,
+  articleStructuredData,
+} from "../seo/structured-data";
 import type { Route } from "./+types/writing-detail";
 
 function formatWritingDate(value: string) {
@@ -44,39 +49,23 @@ function writingMeta(
   loaderData: Route.MetaArgs["loaderData"] | undefined,
 ): ReturnType<Route.MetaFunction> {
   if (loaderData === undefined || loaderData.kind === "not-found") {
-    return [
-      { title: "Page not found | Rahul Yadav" },
-      { name: "robots", content: "noindex,follow" },
-    ];
+    return buildNotFoundMetadata();
   }
 
   const { canonicalOrigin, writing } = loaderData.data;
-  const canonicalUrl = new URL(writing.seo.canonicalPath, canonicalOrigin).href;
-  return [
-    { title: writing.seo.title },
-    { name: "description", content: writing.seo.description },
-    { property: "og:type", content: "article" },
-    { property: "og:title", content: writing.seo.title },
-    { property: "og:description", content: writing.seo.description },
-    { property: "og:url", content: canonicalUrl },
-    { property: "article:published_time", content: writing.publishedOn },
-    ...(writing.updatedOn === undefined
-      ? []
-      : [{ property: "article:modified_time", content: writing.updatedOn }]),
-    ...writing.tags.map((tag) => ({
-      property: "article:tag",
-      content: tag,
-    })),
-    { tagName: "link", rel: "canonical", href: canonicalUrl },
-    {
-      tagName: "link",
-      rel: "alternate",
-      type: "application/rss+xml",
-      title: "Rahul Yadav — Writings RSS",
-      href: new URL("/rss.xml", canonicalOrigin).href,
+  return buildPageMetadata({
+    canonicalOrigin,
+    seo: writing.seo,
+    openGraphType: "article",
+    discoverFeed: true,
+    article: {
+      publishedOn: writing.publishedOn,
+      ...(writing.updatedOn === undefined
+        ? {}
+        : { updatedOn: writing.updatedOn }),
+      tags: writing.tags,
     },
-    { "script:ld+json": articleStructuredData(loaderData.data) },
-  ];
+  });
 }
 
 export const meta: Route.MetaFunction = ({ loaderData }) =>
@@ -127,78 +116,82 @@ export default function WritingDetail({ loaderData }: Route.ComponentProps) {
   const showTableOfContents = writing.article.tableOfContents.length >= 3;
 
   return (
-    <article className="writing-detail">
-      <nav aria-label="Breadcrumb" className="writing-breadcrumbs">
-        <ol>
-          <li>
-            <Link to="/">Home</Link>
-          </li>
-          <li>
-            <Link to="/writings">Writings</Link>
-          </li>
-          <li aria-current="page">{writing.title}</li>
-        </ol>
-      </nav>
+    <>
+      <JsonLd data={articleStructuredData(pageData)} />
+      <JsonLd data={articleBreadcrumbStructuredData(pageData)} />
+      <article className="writing-detail">
+        <nav aria-label="Breadcrumb" className="writing-breadcrumbs">
+          <ol>
+            <li>
+              <Link to="/">Home</Link>
+            </li>
+            <li>
+              <Link to="/writings">Writings</Link>
+            </li>
+            <li aria-current="page">{writing.title}</li>
+          </ol>
+        </nav>
 
-      <header className="writing-detail__header">
-        <p className="writing-detail__eyebrow">ENGINEERING NOTE</p>
-        <h1>{writing.title}</h1>
-        <p className="writing-detail__summary">{writing.summary}</p>
-        <div className="writing-detail__byline">By Rahul Yadav</div>
-        <dl className="writing-detail__metadata">
-          <div>
-            <dt>Published</dt>
-            <dd>
-              <time dateTime={writing.publishedOn}>
-                {formatWritingDate(writing.publishedOn)}
-              </time>
-            </dd>
-          </div>
-          {writing.updatedOn === undefined ? null : (
+        <header className="writing-detail__header">
+          <p className="writing-detail__eyebrow">ENGINEERING NOTE</p>
+          <h1>{writing.title}</h1>
+          <p className="writing-detail__summary">{writing.summary}</p>
+          <div className="writing-detail__byline">By Rahul Yadav</div>
+          <dl className="writing-detail__metadata">
             <div>
-              <dt>Updated</dt>
+              <dt>Published</dt>
               <dd>
-                <time dateTime={writing.updatedOn}>
-                  {formatWritingDate(writing.updatedOn)}
+                <time dateTime={writing.publishedOn}>
+                  {formatWritingDate(writing.publishedOn)}
                 </time>
               </dd>
             </div>
-          )}
-          <div>
-            <dt>Reading time</dt>
-            <dd>{writing.readingTimeMinutes} minutes</dd>
-          </div>
-        </dl>
-        <ul aria-label="Article tags" className="writing-tags">
-          {writing.tags.map((tag) => (
-            <li key={tag}>{tag}</li>
-          ))}
-        </ul>
-      </header>
-
-      {showTableOfContents ? (
-        <ArticleTableOfContents items={writing.article.tableOfContents} />
-      ) : null}
-
-      <ArticleContent blocks={writing.article.blocks} />
-
-      {pageData.relatedWritings.length === 0 ? null : (
-        <aside
-          aria-labelledby="related-writings-heading"
-          className="related-writings"
-        >
-          <h2 id="related-writings-heading">Related writings</h2>
-          <ul>
-            {pageData.relatedWritings.map((related) => (
-              <li key={related.path}>
-                <Link to={related.path}>{related.title}</Link>
-              </li>
+            {writing.updatedOn === undefined ? null : (
+              <div>
+                <dt>Updated</dt>
+                <dd>
+                  <time dateTime={writing.updatedOn}>
+                    {formatWritingDate(writing.updatedOn)}
+                  </time>
+                </dd>
+              </div>
+            )}
+            <div>
+              <dt>Reading time</dt>
+              <dd>{writing.readingTimeMinutes} minutes</dd>
+            </div>
+          </dl>
+          <ul aria-label="Article tags" className="writing-tags">
+            {writing.tags.map((tag) => (
+              <li key={tag}>{tag}</li>
             ))}
           </ul>
-        </aside>
-      )}
+        </header>
 
-      <WritingNavigation pageData={pageData} />
-    </article>
+        {showTableOfContents ? (
+          <ArticleTableOfContents items={writing.article.tableOfContents} />
+        ) : null}
+
+        <ArticleContent blocks={writing.article.blocks} />
+
+        {pageData.relatedWritings.length === 0 ? null : (
+          <aside
+            aria-labelledby="related-writings-heading"
+            className="related-writings"
+          >
+            <h2 id="related-writings-heading">Related writings</h2>
+            <ul>
+              {pageData.relatedWritings.map((related) => (
+                <li key={related.path}>
+                  <Link to={related.path}>{related.title}</Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )}
+
+        <WritingNavigation pageData={pageData} />
+      </article>
+    </>
   );
 }
