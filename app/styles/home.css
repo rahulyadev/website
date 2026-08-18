@@ -47,8 +47,8 @@
   align-items: center;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
-  gap: clamp(var(--space-7), 8vw, var(--space-12));
-  padding-block: clamp(var(--space-9), 8vw, var(--space-16));
+  gap: clamp(var(--space-6), 8vw, var(--space-12));
+  padding-block: clamp(var(--space-8), 8vw, var(--space-16));
   border-bottom: var(--home-rule);
 }
 

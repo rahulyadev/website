@@ -725,6 +725,8 @@ Accept when:
 
 ### 10. Final Frontend v1 Audit and Release Tag
 
+Status: audit complete on 2026-08-18. The annotated `v1.0.0` tag is authorized only after the audited candidate passes required CI and final review and is squash-merged.
+
 Deliver:
 
 - A full scope, architecture, content, privacy, design, accessibility, SEO, performance, testing, and exclusion audit.
@@ -739,6 +741,19 @@ Accept when:
 - Canonical checks and complete browser coverage pass on the release candidate.
 - No private source material, unsupported factual claim, excluded backend/deployment work, or legacy presentation remains.
 - Rahul approves the final diff and visual result, performs the squash merge, and explicitly authorizes the release tag.
+
+Completion record (2026-08-18):
+
+- The final scope, architecture, content, privacy, design, accessibility, SEO, performance, static-output, testing, and exclusion audit found no P0, P1, or P3 defect. Two P2 defects were corrected: invalid home-hero spacing-token references were replaced with approved tokens and guarded by browser assertions, and Playwright retries were disabled while failure traces remain retained.
+- Approved content, route slugs, visuals, interactions, project and writing inventories, article prose and metadata, public media bytes, and the Milestone 8 article-surface color correction remain unchanged.
+- The final production inventory remains 12 HTML routes, 14 route-data files, two XML resources, one SPA fallback, one root `robots.txt`, and exactly 20 approved public media assets. It contains four WIP project records, five published articles, five summary-only RSS items, and eight sitemap URLs.
+- Accessibility review passed for route landmarks and headings, keyboard and focus behavior, interactive names and semantics, responsive and 200% text layouts, light/dark/system themes, reduced motion, forced colors, no-JavaScript output, print behavior, and axe coverage. The featured-experience indicators retain accessible names, keyboard and pointer tooltips, forced-color visibility, reduced-motion behavior, stable layout, and absence from non-featured entries.
+- SEO review passed the exact `https://rahuly.in` canonical policy, `noindex,follow` exceptions, robots and sitemap rules, text-only social metadata, RSS discovery and escaping, and factual structured-data policy. Unknown routes, the SPA fallback, and WIP project details remain excluded where required.
+- The production build remains self-contained: no remote font, image, script, CDN dependency, runtime Markdown parser, server-only content validator, private marker, source path, governance record, or unapproved browser data appears. The static verifier passed the exact inventory, and the build remains 72 files and 1,929,411 bytes with no unexplained size regression.
+- Security and privacy review passed the private-reference ignore boundary, typed public projections, safe URL and JSON-LD handling, generated-output scans, read-only workflow permissions, lockfile consistency, and production plus complete dependency advisory checks. All six private files remain ignored and untracked, and none is present in Git history or public output.
+- Focused type, lint, format, component, browser, production-build, static-verification, console, request, responsive, theme, and visual checks passed. Final release-candidate `npm run verify` and `npm run test:e2e` also passed on 2026-08-18; required GitHub checks and a no-findings PR review remain gates before merge and tagging.
+- Recent writings on home, social imagery, favicon, web manifest, analytics, tracking, deployment, AWS, DNS, Google Search Console, a GitHub Release, shared-platform work, authentication, and future applications remain explicitly deferred. Deployment is a separate post-v1 activity.
+- `v1.0.0` will mark the audited source commit after squash merge. It will not claim that the site is deployed, publicly live, indexed, submitted to search engines, or released through GitHub Releases.
 
 ## Git, Review, and Delivery Workflow
 
