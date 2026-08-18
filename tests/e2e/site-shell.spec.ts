@@ -186,13 +186,23 @@ test("hero uses portrait-left desktop composition and portrait-first mobile comp
       const { height, width, y } = element.getBoundingClientRect();
       return { height, width, y };
     };
+    const hero = document.querySelector(".home-hero");
+    if (hero === null) throw new Error("Missing .home-hero.");
+    const heroStyles = getComputedStyle(hero);
+
     return {
+      gap: Number.parseFloat(heroStyles.rowGap),
       heading: getRect(".home-hero h1"),
       introduction: getRect(".home-hero__positioning"),
+      paddingBlockEnd: Number.parseFloat(heroStyles.paddingBlockEnd),
+      paddingBlockStart: Number.parseFloat(heroStyles.paddingBlockStart),
       portrait: getRect(".home-hero__portrait-frame"),
       role: getRect(".home-hero__eyebrow"),
     };
   });
+  expect(mobileLayout.gap).toBeGreaterThanOrEqual(24);
+  expect(mobileLayout.paddingBlockStart).toBeGreaterThanOrEqual(32);
+  expect(mobileLayout.paddingBlockEnd).toBeGreaterThanOrEqual(32);
   expect(mobileLayout.portrait.y).toBeLessThan(mobileLayout.heading.y);
   expect(mobileLayout.heading.y).toBeLessThan(mobileLayout.role.y);
   expect(mobileLayout.role.y).toBeLessThan(mobileLayout.introduction.y);
