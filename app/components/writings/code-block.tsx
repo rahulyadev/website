@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-
-import { VisuallyHidden } from "../ui";
+import { VisuallyHidden } from "@rahulyadev/design-system";
 
 type CopyState = "idle" | "copied" | "failed";
 

@@ -1,7 +1,7 @@
 @import "tailwindcss";
-@import "./styles/tokens.css";
-@import "./styles/base.css";
-@import "./styles/primitives.css";
+@import "@rahulyadev/design-system/tokens.css";
+@import "@rahulyadev/design-system/base.css";
+@import "@rahulyadev/design-system/primitives.css";
 @import "./styles/site-shell.css";
 @import "./styles/home.css";
 @import "./styles/professional.css";

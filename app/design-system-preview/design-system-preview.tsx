@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from "react";
-
 import {
   Badge,
   Button,
@@ -10,10 +9,9 @@ import {
   Section,
   SectionHeading,
   SkipLink,
-  ThemeToggle,
   VisuallyHidden,
-} from "../components/ui";
-import { useTheme } from "../theme";
+} from "@rahulyadev/design-system";
+import { ThemeToggle, useTheme } from "@rahulyadev/design-system/theme";
 
 interface Swatch {
   label: string;

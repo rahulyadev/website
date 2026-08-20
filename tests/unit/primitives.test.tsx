@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-
 import {
   Badge,
   Button,
@@ -13,7 +12,7 @@ import {
   SectionHeading,
   SkipLink,
   VisuallyHidden,
-} from "../../app/components/ui";
+} from "@rahulyadev/design-system";
 
 describe("design-system primitives", () => {
   it("renders semantic button and link variants", () => {

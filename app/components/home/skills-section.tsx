@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { Section, SectionHeading } from "@rahulyadev/design-system";
 
 import type { SkillGroupCategory } from "../../domain/content";
 import type { HomeSkillGroupData } from "../../domain/route-data";
-import { Section, SectionHeading } from "../ui";
 
 function SkillCategoryIcon({ category }: { category: SkillGroupCategory }) {
   const paths: Record<SkillGroupCategory, ReactNode> = {

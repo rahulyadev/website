@@ -1,5 +1,6 @@
+import { Badge, type BadgeVariant } from "@rahulyadev/design-system";
+
 import type { ProjectStatus } from "../../domain/content";
-import { Badge, type BadgeVariant } from "../ui";
 
 const statusPresentation: Record<
   ProjectStatus,

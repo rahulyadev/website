@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-const themeStorageKey = "rahuly-theme-preference";
+import { THEME_STORAGE_KEY } from "../../app/theme-config";
 
 interface FirstPaintThemeCase {
   effectiveTheme: "light" | "dark";
@@ -172,7 +172,7 @@ async function expectThemeBeforeHydration(
     ({ preference, storageKey }) => {
       window.localStorage.setItem(storageKey, preference);
     },
-    { preference: themeCase.preference, storageKey: themeStorageKey },
+    { preference: themeCase.preference, storageKey: THEME_STORAGE_KEY },
   );
   await page.route(/\/assets\/.*\.js(?:\?.*)?$/, async (route) => {
     await route.abort();

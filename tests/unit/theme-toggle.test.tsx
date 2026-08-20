@@ -1,14 +1,14 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-import { ThemeToggle } from "../../app/components/ui";
 import {
   SYSTEM_THEME_QUERY,
-  THEME_STORAGE_KEY,
   ThemeProvider,
+  ThemeToggle,
   useTheme,
-} from "../../app/theme";
+} from "@rahulyadev/design-system/theme";
+
+import { THEME_STORAGE_KEY } from "../../app/theme-config";
 
 interface MatchMediaController {
   setMatches: (matches: boolean) => void;
@@ -82,7 +82,7 @@ describe("ThemeToggle", () => {
 
     render(
       <>
-        <ThemeProvider>
+        <ThemeProvider storageKey={THEME_STORAGE_KEY}>
           <ThemeToggle />
         </ThemeProvider>
         <button type="button">Next control</button>
@@ -119,7 +119,7 @@ describe("ThemeToggle", () => {
     const user = userEvent.setup();
 
     render(
-      <ThemeProvider>
+      <ThemeProvider storageKey={THEME_STORAGE_KEY}>
         <ThemeToggle />
       </ThemeProvider>,
     );
@@ -152,7 +152,7 @@ describe("ThemeToggle", () => {
     installMatchMedia(false);
 
     render(
-      <ThemeProvider>
+      <ThemeProvider storageKey={THEME_STORAGE_KEY}>
         <ThemeToggle aria-label="Compact theme" presentation="compact" />
       </ThemeProvider>,
     );
@@ -177,7 +177,7 @@ describe("ThemeToggle", () => {
     const matchMedia = installMatchMedia(false);
 
     render(
-      <ThemeProvider>
+      <ThemeProvider storageKey={THEME_STORAGE_KEY}>
         <EffectiveThemeProbe />
       </ThemeProvider>,
     );
