@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
 import { NavLink } from "react-router";
-
-import { Container } from "../ui";
+import { Container } from "@rahulyadev/design-system";
 
 export function SiteFooter() {
   const backToTop = (event: MouseEvent<HTMLAnchorElement>) => {

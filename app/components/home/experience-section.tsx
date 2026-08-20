@@ -1,11 +1,11 @@
 import { Fragment, useId, useState } from "react";
+import { Section, SectionHeading } from "@rahulyadev/design-system";
 
 import type {
   HomeExperienceData,
   HomeTextSegmentData,
 } from "../../domain/route-data";
 import { OrganizationLogo } from "../organization-logo";
-import { Section, SectionHeading } from "../ui";
 
 const visibleContributionCount = 3;
 

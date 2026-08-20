@@ -1,8 +1,8 @@
 import { Link } from "react-router";
+import { Section, SectionHeading } from "@rahulyadev/design-system";
 
 import type { ProjectCardData } from "../../domain/route-data";
 import { ProjectCard } from "../projects/project-card";
-import { Section, SectionHeading } from "../ui";
 
 export function ProjectsSection({
   projects,

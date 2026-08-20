@@ -1,7 +1,7 @@
 import { Link } from "react-router";
+import { Card } from "@rahulyadev/design-system";
 
 import type { ProjectCardData } from "../../domain/route-data";
-import { Card } from "../ui";
 import { ProjectMark } from "./project-mark";
 import { ProjectStatusBadge } from "./project-status-badge";
 

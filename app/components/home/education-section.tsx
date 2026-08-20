@@ -1,6 +1,7 @@
+import { Section, SectionHeading } from "@rahulyadev/design-system";
+
 import type { HomeEducationData } from "../../domain/route-data";
 import { OrganizationLogo } from "../organization-logo";
-import { Section, SectionHeading } from "../ui";
 
 export function EducationSection({
   education,

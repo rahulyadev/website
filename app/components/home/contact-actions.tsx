@@ -1,7 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
+import {
+  IconButton,
+  LinkButton,
+  VisuallyHidden,
+} from "@rahulyadev/design-system";
 
 import type { HomePageData } from "../../domain/route-data";
-import { IconButton, LinkButton, VisuallyHidden } from "../ui";
 
 interface ContactActionsProps {
   contacts: HomePageData["contacts"];

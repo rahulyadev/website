@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
+import { LinkButton, Section, SectionHeading } from "@rahulyadev/design-system";
 
 import type { HomePageData } from "../../domain/route-data";
 import { ResponsivePicture } from "../responsive-picture";
-import { LinkButton, Section, SectionHeading } from "../ui";
 import { useSiteShell } from "../site-shell/site-shell";
 import { ContactActions } from "./contact-actions";
 import { EducationSection } from "./education-section";

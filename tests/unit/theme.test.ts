@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-
 import {
-  THEME_STORAGE_KEY,
   getEffectiveTheme,
   parseThemePreference,
   persistThemePreference,
   readThemePreference,
-} from "../../app/theme";
+} from "@rahulyadev/design-system/theme";
+
+import { THEME_STORAGE_KEY } from "../../app/theme-config";
 
 function createMemoryStorage(initialValue: string | null = null) {
   let value = initialValue;
@@ -41,8 +41,10 @@ describe("theme preferences", () => {
   it("reads and persists the explicit preference", () => {
     const storage = createMemoryStorage("dark");
 
-    expect(readThemePreference(storage)).toBe("dark");
-    expect(persistThemePreference(storage, "light")).toBe(true);
+    expect(readThemePreference(storage, THEME_STORAGE_KEY)).toBe("dark");
+    expect(persistThemePreference(storage, "light", THEME_STORAGE_KEY)).toBe(
+      true,
+    );
     expect(storage.value()).toBe("light");
   });
 
@@ -56,10 +58,16 @@ describe("theme preferences", () => {
       },
     };
 
-    expect(readThemePreference(undefined)).toBe("system");
-    expect(readThemePreference(inaccessibleStorage)).toBe("system");
-    expect(persistThemePreference(undefined, "dark")).toBe(false);
-    expect(persistThemePreference(inaccessibleStorage, "dark")).toBe(false);
+    expect(readThemePreference(undefined, THEME_STORAGE_KEY)).toBe("system");
+    expect(readThemePreference(inaccessibleStorage, THEME_STORAGE_KEY)).toBe(
+      "system",
+    );
+    expect(persistThemePreference(undefined, "dark", THEME_STORAGE_KEY)).toBe(
+      false,
+    );
+    expect(
+      persistThemePreference(inaccessibleStorage, "dark", THEME_STORAGE_KEY),
+    ).toBe(false);
   });
 
   it("resolves system preference without changing explicit modes", () => {

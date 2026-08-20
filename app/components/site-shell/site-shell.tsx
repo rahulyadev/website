@@ -6,9 +6,9 @@ import {
   useState,
 } from "react";
 import { Outlet, useLocation } from "react-router";
+import { Container, SkipLink, VisuallyHidden } from "@rahulyadev/design-system";
 
 import type { SiteShellData } from "../../domain/route-data";
-import { Container, SkipLink, VisuallyHidden } from "../ui";
 import { SiteFooter } from "./site-footer";
 import { SiteHeader } from "./site-header";
 

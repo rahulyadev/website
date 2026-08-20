@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
+import { Container, IconButton } from "@rahulyadev/design-system";
+import { ThemeToggle } from "@rahulyadev/design-system/theme";
 
 import type { ResponsiveImageData } from "../../domain/route-data";
 import { ResponsivePicture } from "../responsive-picture";
-import { Container, IconButton, ThemeToggle } from "../ui";
 
 interface SiteHeaderProps {
   compactIdentityVisible: boolean;

@@ -6,12 +6,13 @@ import {
   ScrollRestoration,
   isRouteErrorResponse,
 } from "react-router";
+import { ThemeProvider } from "@rahulyadev/design-system/theme";
 
 import type { Route } from "./+types/root";
 import { SiteShell } from "./components/site-shell/site-shell";
 import { loadSiteShellData } from "./content/portfolio-route-data.server";
 import { buildNotFoundMetadata } from "./seo/metadata";
-import { THEME_BOOTSTRAP_SCRIPT, ThemeProvider } from "./theme";
+import { THEME_BOOTSTRAP_SCRIPT, THEME_STORAGE_KEY } from "./theme-config";
 import "./app.css";
 
 const DevelopmentDesignSystemPreviewGate = import.meta.env.DEV
@@ -75,7 +76,7 @@ function DevelopmentPreviewBoundary({ children }: { children: ReactNode }) {
 
 export default function App({ loaderData }: Route.ComponentProps) {
   return (
-    <ThemeProvider>
+    <ThemeProvider storageKey={THEME_STORAGE_KEY}>
       <DevelopmentPreviewBoundary>
         <SiteShell data={loaderData} />
       </DevelopmentPreviewBoundary>

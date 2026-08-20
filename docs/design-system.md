@@ -1,28 +1,28 @@
 # Design system
 
-Approved on `2026-08-15` for the frontend-v1 portfolio.
+The frontend-v1 visual foundation was established on `2026-08-15`. This migration branch consumes its reusable primitives, theme utilities, and opt-in CSS from the exact public npm release `@rahulyadev/design-system@1.0.0`.
 
 ## Visual principles
 
-The system uses a modern editorial-engineering direction: strong typographic hierarchy, a precise responsive grid, generous whitespace, warm neutral surfaces, and a restrained blue accent. Borders and depth are subtle, and motion is minimal and purposeful. Decorative gradients, glass effects, fake terminal interfaces, generic developer illustration, excessive card layouts, and legacy presentation are outside the approved direction.
+The system uses a modern editorial-engineering direction: strong typographic hierarchy, a precise responsive grid, generous whitespace, warm neutral surfaces, and a restrained blue accent. Borders and depth are subtle, and motion is minimal and purposeful. Decorative gradients, glass effects, fake terminal interfaces, generic developer illustration, excessive card layouts, and legacy presentation are outside this direction.
 
 ## Tokens
 
-CSS custom properties in `app/styles/tokens.css` are the portable source of truth. They cover light and dark semantic colors; system-first font families, weights, fluid type, line height, and tracking; spacing; radii; borders; shadows; motion duration and easing; reading and layout widths; page gutters; grid settings; breakpoints; focus rings; control sizing; and layering.
+CSS custom properties from `@rahulyadev/design-system/tokens.css` are the reusable source of truth. They cover light and dark semantic colors; system-first font families, weights, fluid type, line height, and tracking; spacing; radii; borders; shadows; motion duration and easing; reading and layout widths; page gutters; grid settings; breakpoints; focus rings; control sizing; and layering.
 
 Components consume semantic roles such as surface, text, accent, border, and focus rather than isolated palette values. Future styles should extend an existing semantic category or introduce a broadly reusable role instead of embedding feature-specific colors.
 
 ## Themes
 
-The supported preferences are `light`, `dark`, and `system`. `ThemeProvider` persists the selected preference, resolves the effective system theme, responds to operating-system changes while system mode is active, and applies both the preference and effective theme to the document root.
+The supported preferences are `light`, `dark`, and `system`. `ThemeProvider` from `@rahulyadev/design-system/theme` persists the selected preference, resolves the effective system theme, responds to operating-system changes while system mode is active, and applies both the preference and effective theme to the document root.
 
-An inline bootstrap runs in the document head before stylesheets. It safely reads the persisted preference, resolves system mode, sets the root theme attributes, and applies the matching `color-scheme` before visible rendering. Invalid or unavailable storage falls back to system mode. The bootstrap and provider are safe during static builds and hydration.
+`app/theme-config.ts` owns the portfolio-specific storage key `rahuly-theme-preference` and generates the inline bootstrap with `createThemeBootstrapScript`. The same key is passed to `ThemeProvider`. The bootstrap runs in the document head before the first theme-consuming stylesheet, safely reads the persisted preference, resolves system mode, sets the root theme attributes, and applies the matching `color-scheme` before visible rendering. Invalid or unavailable storage falls back to system mode. Content Security Policy remains an application responsibility.
 
-The approved reference surface remains available only during `npm run dev` at `/?preview=design-system`; it is not part of production routes or browser assets.
+The reference surface remains available only during `npm run dev` at `/?preview=design-system`; it is not part of production routes or browser assets.
 
-## Local public API
+## Package public API
 
-Import primitives from `app/components/ui`:
+Import reusable primitives, their public types, and finite option constants from the package root:
 
 - `Button`
 - `LinkButton`
@@ -32,11 +32,10 @@ Import primitives from `app/components/ui`:
 - `Card`
 - `Badge`
 - `IconButton`
-- `ThemeToggle`
 - `SkipLink`
 - `VisuallyHidden`
 
-Import theme utilities, types, `ThemeProvider`, and `useTheme` from `app/theme`. Keep the provider at the application root; `ThemeToggle` must render within it. Components retain native element semantics, so callers remain responsible for meaningful labels, links, button intent, and heading order.
+Import `ThemeToggle`, `ThemeProvider`, `useTheme`, bootstrap utilities, and theme types only from `@rahulyadev/design-system/theme`. Keep the provider at the application root; `ThemeToggle` must render within it. Do not use package source paths or undeclared deep imports. Components retain native element semantics, so callers remain responsible for meaningful labels, links, button intent, and heading order.
 
 ```tsx
 import {
@@ -45,7 +44,7 @@ import {
   LinkButton,
   Section,
   SectionHeading,
-} from "../components/ui";
+} from "@rahulyadev/design-system";
 
 export function ExampleSection() {
   return (
@@ -54,7 +53,7 @@ export function ExampleSection() {
         <SectionHeading
           eyebrow="Selected work"
           title="Systems built for change"
-          description="A concise, approved section introduction."
+          description="A concise section introduction."
         />
         <Button>Open details</Button>
         <LinkButton href="/projects" variant="secondary">
@@ -65,6 +64,24 @@ export function ExampleSection() {
   );
 }
 ```
+
+## CSS order
+
+`app/app.css` keeps the framework reset first, followed by the three separate package stylesheets, then portfolio-owned application styles:
+
+```css
+@import "tailwindcss";
+@import "@rahulyadev/design-system/tokens.css";
+@import "@rahulyadev/design-system/base.css";
+@import "@rahulyadev/design-system/primitives.css";
+@import "./styles/site-shell.css";
+@import "./styles/home.css";
+@import "./styles/professional.css";
+@import "./styles/projects.css";
+@import "./styles/writings.css";
+```
+
+JavaScript does not import package CSS. The portfolio owns the effective import order and all styles after the reusable primitive layer.
 
 ## Accessibility and motion
 
@@ -78,6 +95,6 @@ Build mobile-first with `Container`, `Section`, shared page gutters, content wid
 
 ## Adoption rules
 
-All future portfolio sections and presentation work must use this system rather than introduce parallel tokens or one-off component styling. Feature-specific components should be composed from these primitives only when a real section requires them.
+All future portfolio sections and presentation work should use this package boundary rather than introduce parallel reusable tokens or primitives. Feature-specific components should be composed from these primitives only when a real section requires them.
 
-Keep the system local to this application. Extraction into a separate package must wait until a second application proves the abstraction and its public boundary.
+Portfolio layouts, routes, content, SEO, shell behavior, domain components, and application styles remain application-owned. The dependency is pinned to the verified registry release `1.0.0`; source adoption does not claim production deployment.

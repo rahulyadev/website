@@ -23,6 +23,7 @@
     "verify": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build && npm run verify:static"
   },
   "dependencies": {
+    "@rahulyadev/design-system": "1.0.0",
     "@react-router/node": "8.3.0",
     "isbot": "5.2.1",
     "markdown-it": "15.0.0",
