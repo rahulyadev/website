@@ -1,6 +1,6 @@
 # Design system
 
-The frontend-v1 visual foundation was established on `2026-08-15`. This migration branch consumes its reusable primitives, theme utilities, and opt-in CSS from the exact public npm release `@rahulyadev/design-system@1.0.0`.
+The frontend-v1 visual foundation was established on `2026-08-15`. Website source release `v1.0.1` consumes its reusable primitives, theme utilities, and opt-in CSS from the exact public npm release `@rahulyadev/design-system@1.0.0`.
 
 ## Visual principles
 
@@ -97,4 +97,4 @@ Build mobile-first with `Container`, `Section`, shared page gutters, content wid
 
 All future portfolio sections and presentation work should use this package boundary rather than introduce parallel reusable tokens or primitives. Feature-specific components should be composed from these primitives only when a real section requires them.
 
-Portfolio layouts, routes, content, SEO, shell behavior, domain components, and application styles remain application-owned. The dependency is pinned to the verified registry release `1.0.0`; source adoption does not claim production deployment.
+Portfolio layouts, routes, content, SEO, shell behavior, domain components, and application styles remain application-owned. Website source release `v1.0.1` keeps the existing package API, CSS order, `rahuly-theme-preference` storage key, theme bootstrap, accessibility behavior, and consumer ownership unchanged. The dependency is pinned to the verified registry release `1.0.0`; a source release does not claim production deployment.
