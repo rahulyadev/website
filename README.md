@@ -1,6 +1,6 @@
 # rahuly.in
 
-This repository contains the audited static React frontend v1 for the `rahuly.in` portfolio. The Milestone 10 release-readiness audit completed on 2026-08-18, and `v1.0.1` is the current website source release. The site presents Rahul Yadav's public professional profile, four internal WIP project plans, five published engineering articles, and their search-discovery resources without requiring a runtime frontend server. A source release does not indicate deployment.
+This repository contains the audited static React frontend v1 for the `rahuly.in` portfolio. The Milestone 10 release-readiness audit completed on 2026-08-18, and `v1.0.2` is the current website source release. The site presents Rahul Yadav's public professional profile, four internal WIP project plans, five published engineering articles, and their search-discovery resources without requiring a runtime frontend server. A source release does not indicate deployment.
 
 ## Requirements
 
@@ -33,7 +33,7 @@ npm run dev
 
 The application uses React Router Framework Mode, Vite, strict TypeScript, and Tailwind CSS through its Vite integration. Public content is validated with Zod at a server/build-only boundary and accessed through an asynchronous `ContentRepository`; presentation code does not import raw local content.
 
-Website source release `v1.0.1` consumes the exact public npm release `@rahulyadev/design-system@1.0.0`. The lockfile pins the verified registry tarball and integrity, and the published provenance identifies the package repository's `release.yml` workflow. This source release does not indicate that the portfolio has been deployed.
+Website source release `v1.0.2` consumes the exact public npm release `@rahulyadev/design-system@1.0.0`. The lockfile pins the verified registry tarball and integrity, and the published provenance identifies the package repository's `release.yml` workflow. This source release does not indicate that the portfolio has been deployed.
 
 ## Quality commands
 
@@ -58,12 +58,12 @@ The production build is written to `build/client`. Its expected inventory is:
 - Two XML resources: `/rss.xml` and `/sitemap.xml`.
 - One SPA fallback for direct navigation on a static host.
 - One root `/robots.txt` text resource.
-- Exactly 20 public media assets.
+- Exactly 20 public content media assets and three local site-icon assets.
 
 All four project records and internal detail routes are intentionally marked WIP. Project cards retain their internal “View project plan” links, while planned external application destinations remain non-interactive. WIP details are self-canonical, use `noindex,follow`, and are excluded from the eight-URL sitemap. Unknown routes are canonical exceptions: they render the accessible not-found view with `noindex,follow` and no canonical, social URL, feed discovery, or structured data.
 
-The five published articles appear in deterministic reverse chronology and in both the summary-only RSS feed and the sitemap. Recent writings on the home page are deferred; the home page is unchanged. A social-preview image, favicon, and web manifest are also deferred, so Open Graph and Twitter output remains factual and text-only.
+The five published articles appear in deterministic reverse chronology and in both the summary-only RSS feed and the sitemap. Recent writings on the home page are deferred; the home page is unchanged. The site includes local SVG and ICO browser icons plus a local Apple touch icon. A social-preview image and web manifest remain deferred, so Open Graph and Twitter output remains factual and text-only.
 
-Private résumé sources, extracted text, and their comparison report remain ignored and untracked. Only typed public projections may enter route data or browser output. The annotated `v1.0.0` tag at `0bfde1c170e2b27ec92d98504b6fa25d66543bed` remains the rollback source baseline. Neither `v1.0.0` nor the current `v1.0.1` source release represents deployment. Hosting, deployment, AWS, DNS, analytics, Search Console, and other external integrations remain excluded.
+Private résumé sources, extracted text, and their comparison report remain ignored and untracked. Only typed public projections may enter route data or browser output. The annotated `v1.0.0` tag at `0bfde1c170e2b27ec92d98504b6fa25d66543bed` remains the rollback source baseline. Neither `v1.0.0` nor the current `v1.0.2` source release represents deployment. Hosting, deployment, AWS, DNS, analytics, Search Console, and other external integrations remain excluded.
 
 See [the design-system guide](docs/design-system.md) for the visual foundation and package integration. See [the portfolio v1 plan](docs/portfolio-v1-plan.md) for the architecture, milestone boundaries, and acceptance criteria.
