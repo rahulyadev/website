@@ -26,6 +26,26 @@ const DevelopmentDesignSystemPreviewGate = import.meta.env.DEV
 
 export const meta: Route.MetaFunction = () => buildNotFoundMetadata();
 
+export const links: Route.LinksFunction = () => [
+  {
+    rel: "icon",
+    href: "/favicon.ico",
+    sizes: "16x16 32x32 48x48",
+    type: "image/x-icon",
+  },
+  {
+    rel: "icon",
+    href: "/favicon.svg",
+    sizes: "any",
+    type: "image/svg+xml",
+  },
+  {
+    rel: "apple-touch-icon",
+    href: "/apple-touch-icon.png",
+    sizes: "180x180",
+  },
+];
+
 export async function loader() {
   return loadSiteShellData();
 }

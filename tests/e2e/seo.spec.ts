@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const publicRoutes = [
   {
@@ -129,6 +129,37 @@ const publicRoutes = [
   },
 ] as const;
 
+async function expectSiteIconLinks(page: Page) {
+  const expectations = [
+    {
+      selector: 'link[rel="icon"][href="/favicon.ico"]',
+      attributes: {
+        sizes: "16x16 32x32 48x48",
+        type: "image/x-icon",
+      },
+    },
+    {
+      selector: 'link[rel="icon"][href="/favicon.svg"]',
+      attributes: { sizes: "any", type: "image/svg+xml" },
+    },
+    {
+      selector: 'link[rel="apple-touch-icon"][href="/apple-touch-icon.png"]',
+      attributes: { sizes: "180x180" },
+    },
+  ] as const;
+
+  for (const expectation of expectations) {
+    const link = page.locator(expectation.selector);
+    await expect(link).toHaveCount(1);
+    for (const [attribute, value] of Object.entries(expectation.attributes)) {
+      await expect(link).toHaveAttribute(attribute, value);
+    }
+  }
+  await expect(
+    page.locator('link[rel="icon"], link[rel="apple-touch-icon"]'),
+  ).toHaveCount(expectations.length);
+}
+
 test("all 12 HTML routes emit the exact unique metadata policy", async ({
   page,
 }) => {
@@ -136,6 +167,7 @@ test("all 12 HTML routes emit the exact unique metadata policy", async ({
     await page.goto(route.path);
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en-IN");
+    await expectSiteIconLinks(page);
     await expect(page.locator("title")).toHaveCount(1);
     await expect(page).toHaveTitle(route.title);
     await expect(page.locator('meta[name="description"]')).toHaveCount(1);
@@ -256,6 +288,19 @@ test("robots.txt is exact and representative pages request no remote resources",
   expect(await robotsResponse.text()).toBe(
     "User-agent: *\nAllow: /\n\nSitemap: https://rahuly.in/sitemap.xml\n",
   );
+
+  for (const [path, contentType] of [
+    ["/favicon.svg", "image/svg+xml"],
+    ["/favicon.ico", null],
+    ["/apple-touch-icon.png", "image/png"],
+  ] as const) {
+    const response = await request.get(path);
+    expect(response.ok(), path).toBe(true);
+    if (contentType !== null) {
+      expect(response.headers()["content-type"], path).toContain(contentType);
+    }
+    expect((await response.body()).byteLength, path).toBeGreaterThan(0);
+  }
 
   const remoteResources: string[] = [];
   page.on("request", (browserRequest) => {

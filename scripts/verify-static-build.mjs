@@ -154,6 +154,27 @@ const approvedPublicAssets = [
   },
 ];
 
+const siteIconAssets = [
+  {
+    path: "favicon.svg",
+    byteSize: 422,
+    sha256: "e6efbb223ca38bfcf7b08a748306dd205ee40be0e033191e29766f48e2d7f3ed",
+  },
+  {
+    path: "favicon.ico",
+    byteSize: 4_376,
+    sha256: "8691e6889da62b3db19ff945b72c65bbfcf510ceebebecd48f8f54c18336da17",
+    iconSizes: [16, 32, 48],
+  },
+  {
+    path: "apple-touch-icon.png",
+    byteSize: 3_853,
+    sha256: "60c4d78e5a861cdf3c79eed494ee981d6f7a76a1f62a43c1f50db8c747bde78c",
+    width: 180,
+    height: 180,
+  },
+];
+
 function normalizedExtension(filePath) {
   return path.extname(filePath).toLowerCase();
 }
@@ -865,6 +886,57 @@ function readImageDimensions(bytes, relativePath) {
   throw new Error(`Unsupported approved image extension in ${relativePath}.`);
 }
 
+function readPngDimensions(bytes, relativePath) {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (
+    bytes.length < 24 ||
+    !bytes.subarray(0, signature.length).equals(signature) ||
+    bytes.subarray(12, 16).toString("ascii") !== "IHDR"
+  ) {
+    throw new Error(`Expected a valid PNG header in ${relativePath}.`);
+  }
+
+  return {
+    width: bytes.readUInt32BE(16),
+    height: bytes.readUInt32BE(20),
+  };
+}
+
+function readIcoSizes(bytes, relativePath) {
+  if (
+    bytes.length < 6 ||
+    bytes.readUInt16LE(0) !== 0 ||
+    bytes.readUInt16LE(2) !== 1
+  ) {
+    throw new Error(`Expected a valid ICO header in ${relativePath}.`);
+  }
+
+  const imageCount = bytes.readUInt16LE(4);
+  if (bytes.length < 6 + imageCount * 16) {
+    throw new Error(`Found a truncated ICO directory in ${relativePath}.`);
+  }
+
+  const sizes = [];
+  for (let index = 0; index < imageCount; index += 1) {
+    const offset = 6 + index * 16;
+    const width = bytes[offset] === 0 ? 256 : bytes[offset];
+    const height = bytes[offset + 1] === 0 ? 256 : bytes[offset + 1];
+    const byteSize = bytes.readUInt32LE(offset + 8);
+    const imageOffset = bytes.readUInt32LE(offset + 12);
+    if (
+      width !== height ||
+      byteSize === 0 ||
+      imageOffset < 6 + imageCount * 16 ||
+      imageOffset + byteSize > bytes.length
+    ) {
+      throw new Error(`Found an invalid ICO entry in ${relativePath}.`);
+    }
+    sizes.push(width);
+  }
+
+  return sizes.sort((left, right) => left - right);
+}
+
 const forbiddenPrivateMarkers = [
   "references/private",
   "rahul_yadav_senior_backend_engineer.docx.pdf",
@@ -944,6 +1016,24 @@ if (
 ) {
   throw new Error(
     `Unexpected approved public-asset inventory. Expected ${approvedPublicAssetPaths.join(", ")}; received ${generatedPublicAssetPaths.join(", ")}.`,
+  );
+}
+
+const expectedSiteIconPaths = siteIconAssets.map((asset) => asset.path).sort();
+const generatedSiteIconPaths = generatedFiles
+  .map(relativeGeneratedPath)
+  .filter(
+    (relativePath) =>
+      relativePath.startsWith("favicon.") ||
+      relativePath.startsWith("apple-touch-icon."),
+  )
+  .sort();
+if (
+  JSON.stringify(generatedSiteIconPaths) !==
+  JSON.stringify(expectedSiteIconPaths)
+) {
+  throw new Error(
+    `Unexpected site-icon inventory. Expected ${expectedSiteIconPaths.join(", ")}; received ${generatedSiteIconPaths.join(", ")}.`,
   );
 }
 
@@ -1031,6 +1121,90 @@ for (const approvedAsset of approvedPublicAssets) {
   }
 }
 
+for (const siteIcon of siteIconAssets) {
+  const absolutePath = path.join(clientDirectory, siteIcon.path);
+  const bytes = await readFile(absolutePath);
+  const actualHash = createHash("sha256").update(bytes).digest("hex");
+  if (bytes.length !== siteIcon.byteSize || actualHash !== siteIcon.sha256) {
+    throw new Error(`Integrity mismatch for site icon ${siteIcon.path}.`);
+  }
+
+  if (siteIcon.width !== undefined && siteIcon.height !== undefined) {
+    const dimensions = readPngDimensions(bytes, siteIcon.path);
+    if (
+      dimensions.width !== siteIcon.width ||
+      dimensions.height !== siteIcon.height
+    ) {
+      throw new Error(`Unexpected PNG dimensions for ${siteIcon.path}.`);
+    }
+  }
+  if (
+    siteIcon.iconSizes !== undefined &&
+    JSON.stringify(readIcoSizes(bytes, siteIcon.path)) !==
+      JSON.stringify(siteIcon.iconSizes)
+  ) {
+    throw new Error(`Unexpected embedded sizes for ${siteIcon.path}.`);
+  }
+  if (normalizedExtension(siteIcon.path) === ".svg") {
+    const document = new JSDOM(bytes.toString("utf8"), {
+      contentType: "image/svg+xml",
+    }).window.document;
+    const root = document.documentElement;
+    if (
+      root.localName !== "svg" ||
+      root.getAttribute("viewBox") !== "0 0 64 64" ||
+      document.querySelector("script, image, use, [href]") !== null
+    ) {
+      throw new Error(`Unexpected SVG contract for ${siteIcon.path}.`);
+    }
+  }
+}
+
+function assertSiteIconLinks(document, relativePath) {
+  const expectations = [
+    {
+      selector: 'link[rel="icon"][href="/favicon.ico"]',
+      attributes: {
+        sizes: "16x16 32x32 48x48",
+        type: "image/x-icon",
+      },
+    },
+    {
+      selector: 'link[rel="icon"][href="/favicon.svg"]',
+      attributes: { sizes: "any", type: "image/svg+xml" },
+    },
+    {
+      selector: 'link[rel="apple-touch-icon"][href="/apple-touch-icon.png"]',
+      attributes: { sizes: "180x180" },
+    },
+  ];
+
+  for (const expectation of expectations) {
+    const links = [...document.querySelectorAll(expectation.selector)];
+    if (links.length !== 1) {
+      throw new Error(
+        `Expected one ${expectation.selector} in ${relativePath}.`,
+      );
+    }
+    for (const [attribute, expectedValue] of Object.entries(
+      expectation.attributes,
+    )) {
+      if (links[0]?.getAttribute(attribute) !== expectedValue) {
+        throw new Error(
+          `Unexpected ${attribute} on ${expectation.selector} in ${relativePath}.`,
+        );
+      }
+    }
+  }
+
+  if (
+    document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]')
+      .length !== expectations.length
+  ) {
+    throw new Error(`Found unexpected site-icon links in ${relativePath}.`);
+  }
+}
+
 const generatedHtml = generatedFiles
   .filter((file) => normalizedExtension(file) === ".html")
   .map(relativeGeneratedPath)
@@ -1103,6 +1277,7 @@ for (const [relativePath, expected] of expectedDocuments) {
   if (document.documentElement.lang !== "en-IN") {
     throw new Error(`Expected html lang=en-IN in ${relativePath}.`);
   }
+  assertSiteIconLinks(document, relativePath);
 
   const expectUniqueAttribute = (selector, attribute, expectedValue) => {
     const elements = [...document.querySelectorAll(selector)];
@@ -1237,7 +1412,7 @@ for (const [relativePath, expected] of expectedDocuments) {
   }
   const remoteResource = [
     ...document.querySelectorAll(
-      'script[src], img[src], source[src], link[rel="stylesheet"][href], link[rel="preload"][href], link[rel="icon"][href], link[rel="manifest"][href]',
+      'script[src], img[src], source[src], link[rel="stylesheet"][href], link[rel="preload"][href], link[rel="icon"][href], link[rel="apple-touch-icon"][href], link[rel="manifest"][href]',
     ),
   ].find((element) => {
     const value = element.getAttribute("src") ?? element.getAttribute("href");
@@ -1306,6 +1481,7 @@ for (const expectedMarkup of [
 
 const spaFallback = await requireNonEmptyFile("__spa-fallback.html");
 const spaFallbackDocument = new JSDOM(spaFallback).window.document;
+assertSiteIconLinks(spaFallbackDocument, "__spa-fallback.html");
 
 if (!spaFallback.includes('role="status">Loading page.</p>')) {
   throw new Error(
@@ -3454,5 +3630,5 @@ for (const [relativePath, loaderData] of decodedRootData) {
 }
 
 console.log(
-  `Verified ${expectedDocuments.size} prerendered HTML routes, ${expectedRouteData.length} route-data files, ${expectedXml.length} XML resources, robots.txt, ${approvedPublicAssets.length} approved public media assets, and one SPA fallback in build/client.`,
+  `Verified ${expectedDocuments.size} prerendered HTML routes, ${expectedRouteData.length} route-data files, ${expectedXml.length} XML resources, robots.txt, ${approvedPublicAssets.length} approved public media assets, ${siteIconAssets.length} site icon assets, and one SPA fallback in build/client.`,
 );
